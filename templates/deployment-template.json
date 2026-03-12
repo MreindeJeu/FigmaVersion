@@ -1,0 +1,14 @@
+{
+  "id": "D999",
+  "codename": "OPERATION NAME",
+  "theater": "Star System / Region",
+  "type": "COMBAT",
+  "status": "RECRUITING",
+  "briefing": "Mission briefing goes here. Describe the deployment, objectives, expected duration, and any special notes for your players.",
+  "requiredPilots": 4,
+  "currentSignups": 0,
+  "signedUpPilots": [],
+  "startDate": "2026-04-01",
+  "threat": "MEDIUM",
+  "tags": ["TAG1", "TAG2", "TAG3"]
+}

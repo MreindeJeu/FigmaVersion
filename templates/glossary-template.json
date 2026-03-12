@@ -1,0 +1,8 @@
+{
+  "id": "term-999",
+  "term": "YOUR TERM",
+  "definition": "The definition of this term. Explain what it means in your campaign setting.",
+  "category": "TECHNOLOGY",
+  "classification": "PUBLIC",
+  "relatedTerms": ["TERM_1", "TERM_2"]
+}
