@@ -284,13 +284,6 @@ export function PilotDetailScreen() {
         </div>
       </div>
 
-      {/* Terminal prompt */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
-      </div>
-
-      {/* Back to Top Button */}
       <BackToTop />
     </div>
   );

@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router";
 import { useState } from "react";
 import { useData } from "../context/DataContext";
+import { useAdmin } from "../context/AdminContext";
 import type { Deployment } from "../data/mockData";
 import { ArrowLeft, MapPin, Users, Calendar, Tag, CheckCircle, Target, AlertTriangle, FileText, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
@@ -8,11 +9,13 @@ import { Button } from "./ui/button";
 import { Breadcrumb } from "./Breadcrumb";
 import { BackToTop } from "./BackToTop";
 import { toast } from "sonner";
+import { ClassifiedGuard } from "./ClassifiedGuard";
 
 export function DeploymentDetailScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { deployments, pilots, updateDeployment } = useData();
+  const { isAdmin } = useAdmin();
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [selectedPilotId, setSelectedPilotId] = useState("");
 
@@ -40,6 +43,11 @@ export function DeploymentDetailScreen() {
         </div>
       </div>
     );
+  }
+
+  // Check if deployment is classified and user doesn't have clearance
+  if (deployment.status === "CLASSIFIED" && !isAdmin) {
+    return <ClassifiedGuard />;
   }
 
   const getThreatColor = (threat: Deployment["threat"]) => {
@@ -371,13 +379,6 @@ export function DeploymentDetailScreen() {
         </DialogContent>
       </Dialog>
 
-      {/* Terminal prompt */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
-      </div>
-
-      {/* Back to Top Button */}
       <BackToTop />
     </div>
   );

@@ -1,34 +1,145 @@
 import { locations } from "../data/mockData";
 import { useData } from "../context/DataContext";
-import { Users, MapPin, FileText, AlertTriangle, Activity, Zap, Shield, Radio, Newspaper, Rocket, Book } from "lucide-react";
+import { useAdmin } from "../context/AdminContext";
+import { Users, MapPin, FileText, AlertTriangle, Activity, Zap, Shield, Radio, Rocket, Book } from "lucide-react";
 import { Link } from "react-router";
 import { BackToTop } from "./BackToTop";
+import { NewsFeed } from "./NewsFeed";
+import { useState, useEffect } from "react";
 
 export function Dashboard() {
   const { pilots, deployments } = useData();
+  const { isAdmin } = useAdmin();
+  
+  // Filter out classified deployments for non-admin users
+  const visibleDeployments = isAdmin ? deployments : deployments.filter(d => d.status !== "CLASSIFIED");
+  
   const activePilots = pilots.filter(p => p.status === "ACTIVE" || p.status === "STANDBY").length;
-  const recruitingDeployments = deployments.filter(d => d.status === "RECRUITING").length;
+  const recruitingDeployments = visibleDeployments.filter(d => d.status === "RECRUITING").length;
   const criticalTheaters = locations.filter(l => l.status === "CRITICAL" || l.status === "CONTESTED").length;
-  const totalMissions = deployments.reduce((acc, d) => acc + d.currentSignups, 0);
+  const totalMissions = visibleDeployments.reduce((acc, d) => acc + d.signedUpPilots.length, 0);
+
+  // System uptime counter - persistent across navigation
+  const [uptime, setUptime] = useState(() => {
+    // Get or set the start time in localStorage
+    const startTimeKey = 'vanguard_system_start_time';
+    let startTime = localStorage.getItem(startTimeKey);
+    
+    if (!startTime) {
+      startTime = Date.now().toString();
+      localStorage.setItem(startTimeKey, startTime);
+    }
+    
+    // Calculate initial uptime in seconds
+    return Math.floor((Date.now() - parseInt(startTime)) / 1000);
+  });
+  
+  // Omninode latency with realistic fluctuation
+  const [latency, setLatency] = useState(12);
+
+  useEffect(() => {
+    const startTimeKey = 'vanguard_system_start_time';
+    const startTime = parseInt(localStorage.getItem(startTimeKey) || Date.now().toString());
+    
+    // Update uptime every second based on actual elapsed time
+    const uptimeInterval = setInterval(() => {
+      setUptime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    // Update latency every second with realistic fluctuation
+    const latencyInterval = setInterval(() => {
+      setLatency(prev => {
+        // Gradual change: +/- 0-5ms randomly, but weighted to stay in 2-34 range
+        const change = (Math.random() - 0.5) * 10; // -5 to +5
+        let newLatency = prev + change;
+        
+        // Clamp to realistic range with soft boundaries
+        if (newLatency < 2) newLatency = 2 + Math.random() * 3;
+        if (newLatency > 34) newLatency = 28 + Math.random() * 6;
+        
+        // Occasionally spike slightly higher (5% chance)
+        if (Math.random() < 0.05) {
+          newLatency = Math.min(240, newLatency + Math.random() * 30);
+        }
+        
+        return Math.round(newLatency);
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(uptimeInterval);
+      clearInterval(latencyInterval);
+    };
+  }, []);
+
+  // Format uptime as HH:MM:SS
+  const formatUptime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  // Generate dynamic activity log based on actual data
+  const generateActivityLog = () => {
+    const activities = [];
+    
+    // Add recent deployments (sorted by start date)
+    const recentDeployments = [...deployments]
+      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+      .slice(0, 3);
+    
+    recentDeployments.forEach(dep => {
+      const depDate = new Date(dep.startDate);
+      const timestamp = `${depDate.toISOString().split('T')[0]} ${depDate.toLocaleTimeString('en-US', { hour12: false })}`;
+      activities.push({
+        timestamp,
+        message: `OPERATION ${dep.codename} posted to deployment board`,
+        date: depDate
+      });
+    });
+
+    // Add recent pilots (sorted by join date)
+    const recentPilots = [...pilots]
+      .sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime())
+      .slice(0, 2);
+    
+    recentPilots.forEach(pilot => {
+      const pilotDate = new Date(pilot.joinDate);
+      const timestamp = `${pilotDate.toISOString().split('T')[0]} ${pilotDate.toLocaleTimeString('en-US', { hour12: false })}`;
+      activities.push({
+        timestamp,
+        message: `New pilot ${pilot.callsign} registered to V.A.N.G.U.A.R.D. network`,
+        date: pilotDate
+      });
+    });
+
+    // Sort all activities by date (most recent first) and return top 5
+    return activities
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 5);
+  };
+
+  const activityLog = generateActivityLog();
 
   return (
-    <div className="min-h-screen p-8 font-mono">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 font-mono">
       {/* Terminal Header */}
-      <div className="mb-8 border-2 border-green-500/30 bg-green-500/5 p-4">
+      <div className="mb-6 sm:mb-8 border-2 border-green-500/30 bg-green-500/5 p-3 sm:p-4">
         <div className="text-xs text-green-600/70 mb-2">// ACCESSING MISSION CONTROL TERMINAL</div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-green-500 tracking-wider drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
+            <h1 className="text-2xl sm:text-3xl font-bold text-green-500 tracking-wider drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
               ▶ MISSION CONTROL
             </h1>
             <p className="text-green-600/80 text-xs mt-2 tracking-wide">
               Union Auxiliary Reserve Status // {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          <div className="text-right text-xs space-y-1">
-            <div className="text-green-600/70">SYSTEM TIME: {new Date().toLocaleTimeString()}</div>
-            <div className="text-green-600/70">UPLINK: STABLE</div>
-            <div className="flex items-center gap-2 justify-end">
+          <div className="text-left sm:text-right text-xs space-y-1">
+            <div className="text-green-600/70">SYSTEM UPTIME: {formatUptime(uptime)}</div>
+            <div className="text-green-600/70">OMNINODE LATENCY: {latency} ms</div>
+            <div className="flex items-center gap-2 sm:justify-end">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
               <span className="text-green-500 font-bold">ONLINE</span>
             </div>
@@ -127,7 +238,7 @@ export function Dashboard() {
                 <h2 className="text-sm font-bold text-green-500 tracking-wider">// RESOURCE ALLOCATION</h2>
               </div>
               <div className="space-y-3">
-                {deployments.filter(d => d.status === "RECRUITING").slice(0, 4).map(dep => (
+                {visibleDeployments.filter(d => d.status === "RECRUITING").slice(0, 4).map(dep => (
                   <div key={dep.id} className="border-l-2 border-green-500/50 pl-3 text-xs">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-green-500 font-bold">{dep.codename}</span>
@@ -137,10 +248,10 @@ export function Dashboard() {
                       <div className="flex-1 h-2 bg-green-950 border border-green-500/30">
                         <div 
                           className="h-full bg-green-500/50" 
-                          style={{ width: `${(dep.currentSignups / dep.requiredPilots) * 100}%` }}
+                          style={{ width: `${(dep.signedUpPilots.length / dep.requiredPilots) * 100}%` }}
                         />
                       </div>
-                      <span className="text-green-600/70 text-[10px] w-16">{dep.currentSignups}/{dep.requiredPilots}</span>
+                      <span className="text-green-600/70 text-[10px] w-16">{dep.signedUpPilots.length}/{dep.requiredPilots}</span>
                     </div>
                   </div>
                 ))}
@@ -157,8 +268,15 @@ export function Dashboard() {
             </div>
             
             <div className="border-2 border-yellow-500/30 bg-yellow-500/5 divide-y-2 divide-yellow-500/20">
-              {deployments
-                .filter(d => d.status === "RECRUITING" && d.threat === "HIGH")
+              {visibleDeployments
+                .filter(d => d.status === "RECRUITING" && (d.threat === "HIGH" || d.threat === "CRITICAL"))
+                .sort((a, b) => {
+                  // Sort by threat level first (CRITICAL before HIGH), then by date
+                  const threatOrder = { CRITICAL: 0, HIGH: 1 };
+                  const threatDiff = threatOrder[a.threat as keyof typeof threatOrder] - threatOrder[b.threat as keyof typeof threatOrder];
+                  if (threatDiff !== 0) return threatDiff;
+                  return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+                })
                 .map(deployment => (
                   <div key={deployment.id} className="p-4 hover:bg-yellow-500/10 transition-colors">
                     <div className="flex items-start justify-between gap-4">
@@ -168,7 +286,11 @@ export function Dashboard() {
                           <div className="font-bold text-yellow-400 tracking-wider drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">
                             {deployment.codename}
                           </div>
-                          <span className="text-xs px-2 py-1 border border-red-500/50 bg-red-500/10 text-red-400 font-bold">
+                          <span className={`text-xs px-2 py-1 border font-bold ${
+                            deployment.threat === "CRITICAL" 
+                              ? "border-red-500/50 bg-red-500/10 text-red-400" 
+                              : "border-orange-500/50 bg-orange-500/10 text-orange-400"
+                          }`}>
                             {deployment.threat}
                           </span>
                         </div>
@@ -176,7 +298,7 @@ export function Dashboard() {
                           THEATER: {deployment.theater} // TYPE: {deployment.type}
                         </div>
                         <div className="text-xs text-green-600/70">
-                          REQUIRED: {deployment.requiredPilots - deployment.currentSignups} additional pilots // START: {new Date(deployment.startDate).toLocaleDateString()}
+                          REQUIRED: {deployment.requiredPilots - deployment.signedUpPilots.length} additional pilots // START: {new Date(deployment.startDate).toLocaleDateString()}
                         </div>
                       </div>
                       <Link 
@@ -187,7 +309,13 @@ export function Dashboard() {
                       </Link>
                     </div>
                   </div>
-                ))}
+                ))
+              }
+              {visibleDeployments.filter(d => d.status === "RECRUITING" && (d.threat === "HIGH" || d.threat === "CRITICAL")).length === 0 && (
+                <div className="p-4 text-center text-xs text-green-600/70">
+                  // NO PRIORITY ALERTS AT THIS TIME
+                </div>
+              )}
             </div>
           </div>
 
@@ -200,93 +328,31 @@ export function Dashboard() {
             </div>
             
             <div className="border-2 border-green-500/30 bg-green-500/5 font-mono text-xs">
-              <div className="p-3 border-b-2 border-green-500/20 hover:bg-green-500/10 transition-colors">
-                <span className="text-green-600/70">[2026-03-12 14:23:17]</span>
-                <span className="text-green-500 mx-2">//</span>
-                <span className="text-green-400">OPERATION SOLSTICE RAIN posted to deployment board</span>
-              </div>
-              <div className="p-3 border-b-2 border-green-500/20 hover:bg-green-500/10 transition-colors">
-                <span className="text-green-600/70">[2026-03-11 09:15:42]</span>
-                <span className="text-green-500 mx-2">//</span>
-                <span className="text-green-400">Pilot CIPHER signed up for OPERATION GREY GARDEN</span>
-              </div>
-              <div className="p-3 border-b-2 border-green-500/20 hover:bg-green-500/10 transition-colors">
-                <span className="text-green-600/70">[2026-03-10 16:44:09]</span>
-                <span className="text-green-500 mx-2">//</span>
-                <span className="text-green-400">OPERATION IRON MONSOON deployment commenced</span>
-              </div>
-              <div className="p-3 hover:bg-green-500/10 transition-colors">
-                <span className="text-green-600/70">[2026-03-09 11:02:33]</span>
-                <span className="text-green-500 mx-2">//</span>
-                <span className="text-green-400">New pilot OVERWATCH registered to V.A.N.G.U.A.R.D. network</span>
-              </div>
+              {activityLog.map((activity, index) => (
+                <div 
+                  key={index} 
+                  className={`p-3 hover:bg-green-500/10 transition-colors ${
+                    index < activityLog.length - 1 ? 'border-b-2 border-green-500/20' : ''
+                  }`}
+                >
+                  <span className="text-green-600/70">[{activity.timestamp}]</span>
+                  <span className="text-green-500 mx-2">//</span>
+                  <span className="text-green-400">{activity.message}</span>
+                </div>
+              ))}
+              {activityLog.length === 0 && (
+                <div className="p-3 text-center text-xs text-green-600/70">
+                  // NO RECENT ACTIVITY
+                </div>
+              )}
             </div>
           </div>
 
           {/* News Feed */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Newspaper className="w-4 h-4 text-green-500" />
-              <h2 className="text-sm font-bold text-green-500 tracking-wider">// UNION NEWS FEED</h2>
-              <div className="flex-1 h-px bg-green-500/30" />
-            </div>
-            
-            <div className="border-2 border-green-500/30 bg-green-500/5 font-mono text-xs">
-              <div className="p-3 border-b-2 border-green-500/20 hover:bg-green-500/10 transition-colors">
-                <div className="flex items-start gap-3">
-                  <span className="text-green-500">▪</span>
-                  <div className="flex-1">
-                    <div className="text-green-400 mb-1">Union Central Committee Approves New Humanitarian Aid Package for Rim Worlds</div>
-                    <span className="text-green-600/70 text-[10px]">UNION PRESS SERVICE // 2026-03-12</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 border-b-2 border-green-500/20 hover:bg-green-500/10 transition-colors">
-                <div className="flex items-start gap-3">
-                  <span className="text-yellow-500">▪</span>
-                  <div className="flex-1">
-                    <div className="text-green-400 mb-1">Harrison Armory Faces Sanctions Following Illegal Weapons Tests in Neutral Space</div>
-                    <span className="text-green-600/70 text-[10px]">GALACTIC UNION TRIBUNE // 2026-03-11</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 border-b-2 border-green-500/20 hover:bg-green-500/10 transition-colors">
-                <div className="flex items-start gap-3">
-                  <span className="text-green-500">▪</span>
-                  <div className="flex-1">
-                    <div className="text-green-400 mb-1">HORUS Collective Continues Pattern Recognition Research Despite Controversy</div>
-                    <span className="text-green-600/70 text-[10px]">TECH OBSERVER // 2026-03-10</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 border-b-2 border-green-500/20 hover:bg-green-500/10 transition-colors">
-                <div className="flex items-start gap-3">
-                  <span className="text-blue-500">▪</span>
-                  <div className="flex-1">
-                    <div className="text-green-400 mb-1">IPS-N Announces Next Generation "Raleigh" Frame with Enhanced Mobility Systems</div>
-                    <span className="text-green-600/70 text-[10px]">MECH DEVELOPMENT WEEKLY // 2026-03-09</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 hover:bg-green-500/10 transition-colors">
-                <div className="flex items-start gap-3">
-                  <span className="text-green-500">▪</span>
-                  <div className="flex-1">
-                    <div className="text-green-400 mb-1">Colonial Administration Reports Successful Terraforming Milestone on New Prosperity</div>
-                    <span className="text-green-600/70 text-[10px]">FRONTIER CHRONICLE // 2026-03-08</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <NewsFeed />
         </div>
       </div>
 
-      {/* Terminal prompt at bottom */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
-      </div>
       <BackToTop />
     </div>
   );

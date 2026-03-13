@@ -1,8 +1,11 @@
 import { useData } from "../context/DataContext";
 import { locations } from "../data/mockData";
 import { MapPin, Users, Building, Activity, Globe } from "lucide-react";
+import { BackToTop } from "../components/BackToTop";
 
 export function LocationsScreen() {
+  const { deployments } = useData();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "STABLE": return "text-green-500 border-green-500/50 bg-green-500/10";
@@ -33,7 +36,7 @@ export function LocationsScreen() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {locations.map(location => {
-          const activeOps = useData().deployments.filter(d => d.theater === location.name);
+          const activeOps = deployments.filter(d => d.theater === location.name);
           
           return (
             <div
@@ -100,11 +103,7 @@ export function LocationsScreen() {
         })}
       </div>
 
-      {/* Terminal prompt */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
-      </div>
+      <BackToTop />
     </div>
   );
 }

@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { useData } from "../context/DataContext";
+import { useAdmin } from "../context/AdminContext";
 import type { GlossaryEntry } from "../data/glossaryData";
 import { Book, Search, Shield, Lock, Globe, Grid3x3, List, Filter, ChevronDown } from "lucide-react";
 import { Link } from "react-router";
 import { BackToTop } from "./BackToTop";
+import { toast } from "sonner";
 
 type SortMode = "alphabetical" | "category" | "classification";
 
 export function GlossaryScreen() {
   const { glossaryEntries } = useData();
+  const { isAdmin } = useAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedClassification, setSelectedClassification] = useState<string>("ALL");
@@ -328,33 +331,6 @@ export function GlossaryScreen() {
           ))}
         </div>
       )}
-
-      {/* No Results */}
-      {filteredEntries.length === 0 && (
-        <div className="border-2 border-red-500/30 bg-red-500/5 p-12 text-center">
-          <div className="text-red-500 text-4xl mb-4">⚠</div>
-          <div className="text-xl font-bold text-red-400 mb-2">NO ENTRIES FOUND</div>
-          <div className="text-sm text-red-600/70">
-            // No glossary entries match your search criteria
-          </div>
-          <button
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedCategory("ALL");
-              setSelectedClassification("ALL");
-            }}
-            className="mt-4 px-4 py-2 border-2 border-green-500/50 bg-green-500/10 hover:bg-green-500/20 hover:border-green-500 transition-all text-sm font-bold text-green-400"
-          >
-            RESET FILTERS
-          </button>
-        </div>
-      )}
-
-      {/* Terminal prompt */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
-      </div>
 
       <BackToTop />
     </div>

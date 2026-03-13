@@ -4,13 +4,73 @@ import { glossaryEntries as initialGlossary } from "../data/glossaryData";
 import type { Pilot, Deployment } from "../data/mockData";
 import type { GlossaryEntry } from "../data/glossaryData";
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DATA CONTEXT - BACKEND INTEGRATION LAYER
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * This is the PRIMARY BACKEND ATTACHMENT POINT for the V.A.N.G.U.A.R.D. system.
+ * 
+ * DUAL MODE OPERATION:
+ * ---------------------
+ * 1. FIGMA MAKE MODE (Session-Only):
+ *    - Uses in-memory state with initial data from mockData.ts & glossaryData.ts
+ *    - Changes persist during the session but reset on page reload
+ *    - No backend server required
+ * 
+ * 2. VISUAL STUDIO MODE (File-Based Persistence):
+ *    - Connects to Node.js backend server running on port 3001
+ *    - API proxied through Vite to '/api' endpoints
+ *    - Data persisted to JSON files in ./data/ directory:
+ *      • ./data/pilots.json
+ *      • ./data/deployments.json  
+ *      • ./data/glossary.json
+ * 
+ * BACKEND API ENDPOINTS:
+ * ----------------------
+ * GET    /api/pilots           - Fetch all pilots
+ * POST   /api/pilots           - Create new pilot
+ * PUT    /api/pilots/:id       - Update existing pilot
+ * DELETE /api/pilots/:id       - Delete pilot
+ * 
+ * GET    /api/deployments      - Fetch all deployments
+ * POST   /api/deployments      - Create new deployment
+ * PUT    /api/deployments/:id  - Update existing deployment
+ * DELETE /api/deployments/:id  - Delete deployment
+ * 
+ * GET    /api/glossary         - Fetch all glossary entries
+ * POST   /api/glossary         - Create new glossary entry
+ * PUT    /api/glossary/:id     - Update existing glossary entry
+ * DELETE /api/glossary/:id     - Delete glossary entry
+ * 
+ * BACKEND SERVER SETUP:
+ * ---------------------
+ * To enable file-based persistence in Visual Studio:
+ * 1. Run: npm run server
+ * 2. Backend starts on http://localhost:3001
+ * 3. Frontend proxy redirects /api → http://localhost:3001/api
+ * 
+ * The system gracefully falls back to session-only mode if backend unavailable.
+ * 
+ * ═════════════════════════════════��═════════════════════════════════════════
+ */
+
 // Use relative path so it works with Vite proxy
 const API_URL = '/api';
+
+export interface NewsItem {
+  id: string;
+  headline: string;
+  source: string;
+  date: string;
+  type: "normal" | "union" | "breaking";
+}
 
 interface DataContextType {
   pilots: Pilot[];
   deployments: Deployment[];
   glossaryEntries: GlossaryEntry[];
+  newsItems: NewsItem[];
   isLoading: boolean;
   addPilot: (pilot: Pilot) => void;
   updatePilot: (id: string, pilot: Partial<Pilot>) => void;
@@ -21,6 +81,7 @@ interface DataContextType {
   addGlossaryEntry: (entry: GlossaryEntry) => void;
   updateGlossaryEntry: (id: string, entry: Partial<GlossaryEntry>) => void;
   deleteGlossaryEntry: (id: string) => void;
+  setNewsItems: React.Dispatch<React.SetStateAction<NewsItem[]>>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -29,6 +90,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [pilots, setPilots] = useState<Pilot[]>(initialPilots);
   const [deployments, setDeployments] = useState<Deployment[]>(initialDeployments);
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>(initialGlossary);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch initial data from backend
@@ -115,10 +177,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deletePilot = async (id: string) => {
     setPilots(prev => prev.filter(p => p.id !== id));
     
+    // Also remove the pilot from all deployment signups
+    setDeployments(prev => prev.map(deployment => {
+      if (deployment.signedUpPilots.includes(id)) {
+        const updatedSignedUpPilots = deployment.signedUpPilots.filter(pilotId => pilotId !== id);
+        return {
+          ...deployment,
+          signedUpPilots: updatedSignedUpPilots,
+          currentSignups: updatedSignedUpPilots.length
+        };
+      }
+      return deployment;
+    }));
+    
     try {
       await fetch(`${API_URL}/pilots/${id}`, {
         method: 'DELETE'
       });
+      
+      // Update all affected deployments on the backend
+      const affectedDeployments = deployments.filter(d => d.signedUpPilots.includes(id));
+      for (const deployment of affectedDeployments) {
+        const updatedSignedUpPilots = deployment.signedUpPilots.filter(pilotId => pilotId !== id);
+        await fetch(`${API_URL}/deployments/${deployment.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...deployment,
+            signedUpPilots: updatedSignedUpPilots,
+            currentSignups: updatedSignedUpPilots.length
+          })
+        });
+      }
     } catch (error) {
       console.error('Failed to delete pilot from backend:', error);
     }
@@ -216,6 +306,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         pilots,
         deployments,
         glossaryEntries,
+        newsItems,
         isLoading,
         addPilot,
         updatePilot,
@@ -225,7 +316,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         deleteDeployment,
         addGlossaryEntry,
         updateGlossaryEntry,
-        deleteGlossaryEntry
+        deleteGlossaryEntry,
+        setNewsItems
       }}
     >
       {children}

@@ -1,11 +1,29 @@
 import { useData } from "../context/DataContext";
+import { useAdmin } from "../context/AdminContext";
 import type { Deployment } from "../data/mockData";
 import { MapPin, Users, Calendar, Target, FileText, AlertTriangle } from "lucide-react";
 import { Link } from "react-router";
 import { BackToTop } from "./BackToTop";
 
 export function DeploymentsScreen() {
-  const { deployments, pilots } = useData();
+  const { deployments } = useData();
+  const { isAdmin } = useAdmin();
+
+  // Filter out completed deployments and CLASSIFIED (unless admin), then sort by status
+  const sortedDeployments = [...deployments]
+    .filter(d => d.status !== "COMPLETED" && (isAdmin || d.status !== "CLASSIFIED"))
+    .sort((a, b) => {
+      const statusOrder: Record<string, number> = {
+        'RECRUITING': 1,
+        'IN_PROGRESS': 2,
+        'CLASSIFIED': 3
+      };
+      
+      const orderA = statusOrder[a.status] || 999;
+      const orderB = statusOrder[b.status] || 999;
+      
+      return orderA - orderB;
+    });
 
   const getThreatColor = (threat: Deployment["threat"]) => {
     switch (threat) {
@@ -21,7 +39,6 @@ export function DeploymentsScreen() {
     switch (status) {
       case "RECRUITING": return "text-green-400 border-green-500/50 bg-green-500/10";
       case "IN_PROGRESS": return "text-blue-400 border-blue-500/50 bg-blue-500/10";
-      case "COMPLETED": return "text-green-600/50 border-green-500/30 bg-green-500/5";
       case "CLASSIFIED": return "text-purple-400 border-purple-500/50 bg-purple-500/10";
       default: return "text-green-600/50 border-green-500/30 bg-green-500/5";
     }
@@ -47,7 +64,7 @@ export function DeploymentsScreen() {
 
       {/* Deployments List */}
       <div className="space-y-4">
-        {deployments.map(deployment => {
+        {sortedDeployments.map(deployment => {
           const currentSignups = deployment.signedUpPilots.length;
           const spotsRemaining = deployment.requiredPilots - currentSignups;
           const isUrgent = deployment.threat === "CRITICAL" || deployment.threat === "HIGH";
@@ -130,12 +147,6 @@ export function DeploymentsScreen() {
             </Link>
           );
         })}
-      </div>
-
-      {/* Terminal prompt */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
       </div>
 
       <BackToTop />

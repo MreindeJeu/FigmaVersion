@@ -1,14 +1,17 @@
 import { useParams, useNavigate, Link } from "react-router";
 import { useData } from "../context/DataContext";
+import { useAdmin } from "../context/AdminContext";
 import type { GlossaryEntry } from "../data/glossaryData";
 import { ArrowLeft, Book, Shield, Lock, Globe, ExternalLink } from "lucide-react";
 import { Breadcrumb } from "./Breadcrumb";
 import { BackToTop } from "./BackToTop";
+import { ClassifiedGuard } from "./ClassifiedGuard";
 
 export function GlossaryDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { glossaryEntries } = useData();
+  const { isAdmin } = useAdmin();
   const entry = glossaryEntries.find(e => e.id === id);
 
   if (!entry) {
@@ -33,6 +36,11 @@ export function GlossaryDetailScreen() {
         </div>
       </div>
     );
+  }
+
+  // Check if entry is classified and user doesn't have clearance
+  if (entry.classification === "CLASSIFIED" && !isAdmin) {
+    return <ClassifiedGuard />;
   }
 
   const getClassificationIcon = (classification: GlossaryEntry["classification"]) => {
@@ -76,38 +84,81 @@ export function GlossaryDetailScreen() {
 
   // Function to parse definition and create links to other glossary entries
   const parseDefinitionWithLinks = (definition: string) => {
-    // Create a map of terms to their IDs for quick lookup
-    const termMap = new Map(
-      glossaryEntries.map(e => [e.term.toLowerCase(), e.id])
-    );
+    // Create a map of terms to their IDs, sorted by length (longest first)
+    const termEntries = glossaryEntries
+      .filter(e => e.id !== entry.id) // Exclude current entry
+      .sort((a, b) => b.term.length - a.term.length); // Sort by length descending
 
-    // Split definition into words and reconstruct with links
-    const words = definition.split(/(\s+|[.,;:!?()"])/);
-    const elements: JSX.Element[] = [];
+    let processedDefinition = definition;
+    const replacements: Array<{ start: number; end: number; termId: string; originalText: string }> = [];
 
-    words.forEach((word, index) => {
-      const cleanWord = word.toLowerCase().replace(/[.,;:!?()"]/g, '');
-      const termId = termMap.get(cleanWord);
-
-      if (termId && termId !== entry.id) {
-        // This word matches a glossary term
-        elements.push(
-          <Link
-            key={index}
-            to={`/glossary/${termId}`}
-            className="text-cyan-400 hover:text-cyan-300 underline decoration-cyan-500/50 hover:decoration-cyan-400 transition-colors inline-flex items-center gap-0.5 group"
-          >
-            {word.replace(/[.,;:!?()"]/g, '')}
-            <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            {word.match(/[.,;:!?()"]/) ? word.match(/[.,;:!?()"]/)?.[0] : ''}
-          </Link>
+    // Find all occurrences of glossary terms (case-insensitive)
+    termEntries.forEach(glossaryEntry => {
+      const regex = new RegExp(`\\b${glossaryEntry.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      let match;
+      
+      while ((match = regex.exec(definition)) !== null) {
+        const start = match.index;
+        const end = start + match[0].length;
+        
+        // Check if this position overlaps with an existing replacement
+        const overlaps = replacements.some(r => 
+          (start >= r.start && start < r.end) || (end > r.start && end <= r.end)
         );
-      } else {
-        elements.push(<span key={index}>{word}</span>);
+        
+        if (!overlaps) {
+          replacements.push({
+            start,
+            end,
+            termId: glossaryEntry.id,
+            originalText: match[0]
+          });
+        }
       }
     });
 
-    return elements;
+    // Sort replacements by position (reverse order for easier splicing)
+    replacements.sort((a, b) => b.start - a.start);
+
+    // Build the JSX elements
+    const elements: JSX.Element[] = [];
+    let lastIndex = definition.length;
+
+    replacements.forEach((replacement, idx) => {
+      // Add text after this link
+      if (lastIndex > replacement.end) {
+        elements.unshift(
+          <span key={`text-after-${idx}`}>
+            {definition.substring(replacement.end, lastIndex)}
+          </span>
+        );
+      }
+      
+      // Add the link
+      elements.unshift(
+        <Link
+          key={`link-${idx}`}
+          to={`/glossary/${replacement.termId}`}
+          className="text-cyan-400 hover:text-cyan-300 underline decoration-cyan-500/50 hover:decoration-cyan-400 transition-colors inline-flex items-center gap-0.5 group"
+        >
+          {replacement.originalText}
+          <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </Link>
+      );
+      
+      lastIndex = replacement.start;
+    });
+
+    // Add any remaining text at the beginning
+    if (lastIndex > 0) {
+      elements.unshift(
+        <span key="text-start">
+          {definition.substring(0, lastIndex)}
+        </span>
+      );
+    }
+
+    return elements.length > 0 ? elements : [<span key="full-text">{definition}</span>];
   };
 
   // Find related entries
@@ -251,12 +302,6 @@ export function GlossaryDetailScreen() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Terminal prompt */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
       </div>
 
       <BackToTop />

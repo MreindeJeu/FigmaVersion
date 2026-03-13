@@ -17,7 +17,22 @@ export default defineConfig({
     },
   },
 
-  // Proxy API requests to the backend server
+  /**
+   * BACKEND API PROXY CONFIGURATION
+   * ================================
+   * 
+   * Proxies all /api requests to the Node.js backend server running on port 3001.
+   * This allows the frontend to make API calls to /api/* which get forwarded to
+   * http://localhost:3001/api/*
+   * 
+   * USAGE:
+   * - Frontend: fetch('/api/pilots')
+   * - Proxied to: http://localhost:3001/api/pilots
+   * 
+   * Start backend: npm run server
+   * 
+   * See DataContext.tsx for API endpoint documentation.
+   */
   server: {
     proxy: {
       '/api': {

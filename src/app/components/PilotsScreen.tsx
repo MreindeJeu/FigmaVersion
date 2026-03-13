@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useData } from "../context/DataContext";
 import type { Pilot } from "../data/mockData";
 import { User, Calendar, Award, Activity, Users, Zap, FileText } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { BackToTop } from "./BackToTop";
 
 export function PilotsScreen() {
   const { pilots } = useData();
   const [selectedPilot, setSelectedPilot] = useState<Pilot | null>(null);
+  const navigate = useNavigate();
 
   const getStatusColor = (status: Pilot["status"]) => {
     switch (status) {
@@ -16,6 +17,16 @@ export function PilotsScreen() {
       case "DEPLOYED": return "text-blue-500 border-blue-500/50 bg-blue-500/10";
       case "UNAVAILABLE": return "text-red-500 border-red-500/50 bg-red-500/10";
       default: return "text-green-600/50 border-green-500/30 bg-green-500/5";
+    }
+  };
+
+  const handlePilotClick = (pilot: Pilot) => {
+    // On mobile, navigate directly to pilot detail page
+    if (window.innerWidth < 1024) {
+      navigate(`/pilots/${pilot.id}`);
+    } else {
+      // On desktop, show in sidebar
+      setSelectedPilot(pilot);
     }
   };
 
@@ -37,13 +48,13 @@ export function PilotsScreen() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Pilot List */}
         <div className="lg:col-span-2 border-2 border-green-500/30 bg-green-500/5 divide-y-2 divide-green-500/20">
           {pilots.map(pilot => (
             <div
               key={pilot.id}
-              onClick={() => setSelectedPilot(pilot)}
+              onClick={() => handlePilotClick(pilot)}
               className={`p-4 cursor-pointer hover:bg-green-500/10 transition-all hover-glow ${
                 selectedPilot?.id === pilot.id ? "bg-green-500/15 border-l-4 border-green-500" : ""
               }`}
@@ -94,8 +105,8 @@ export function PilotsScreen() {
           ))}
         </div>
 
-        {/* Pilot Detail */}
-        <div className="lg:col-span-1">
+        {/* Pilot Detail - Hidden on mobile, visible on desktop */}
+        <div className="hidden lg:block lg:col-span-1">
           {selectedPilot ? (
             <div className="border-2 border-green-500/30 bg-green-500/5 p-6 sticky top-6">
               <div className="mb-6">
@@ -177,11 +188,6 @@ export function PilotsScreen() {
         </div>
       </div>
 
-      {/* Terminal prompt */}
-      <div className="mt-6 flex items-center gap-2 text-green-500/50 text-xs">
-        <span>$</span>
-        <span className="animate-pulse">_</span>
-      </div>
       <BackToTop />
     </div>
   );
