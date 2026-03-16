@@ -23,7 +23,7 @@ import { router } from './routes';
  * ------------------
  * /src/app/
  *   ├── App.tsx              ← Entry point (this file)
- *   ├── routes.tsx           ← React Router configuration
+ *   ├── routes.tsx           ← React Router configuration with providers
  *   ├── context/             ← State management
  *   │   ├── AdminContext.tsx ← Authentication (COMMAND clearance)
  *   │   └── DataContext.tsx  ← Backend API integration (PRIMARY ATTACHMENT POINT)

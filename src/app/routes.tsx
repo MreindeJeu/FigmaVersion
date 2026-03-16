@@ -4,6 +4,7 @@ import { InitScreen } from "./components/InitScreen";
 import { Dashboard } from "./components/Dashboard";
 import { PilotsScreen } from "./components/PilotsScreen";
 import { PilotDetailScreen } from "./components/PilotDetailScreen";
+import { MechDetailScreen } from "./components/MechDetailScreen";
 import { DeploymentsScreen } from "./components/DeploymentsScreen";
 import { DeploymentDetailScreen } from "./components/DeploymentDetailScreen";
 import { LocationsScreen } from "./components/LocationsScreen";
@@ -11,6 +12,8 @@ import { AdminPanel } from "./components/AdminPanel";
 import { GlossaryScreen } from "./components/GlossaryScreen";
 import { GlossaryDetailScreen } from "./components/GlossaryDetailScreen";
 import { NewsStory } from "./components/NewsStory";
+import { DataProvider } from "./context/DataContext";
+import { AdminProvider } from "./context/AdminContext";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -42,15 +45,27 @@ import { NewsStory } from "./components/NewsStory";
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// Wrapper component to provide context to all routes
+function RootWithProviders() {
+  return (
+    <AdminProvider>
+      <DataProvider>
+        <Root />
+      </DataProvider>
+    </AdminProvider>
+  );
+}
+
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: Root,
+    Component: RootWithProviders,
     children: [
       { index: true, Component: InitScreen },
       { path: "dashboard", Component: Dashboard },
       { path: "pilots", Component: PilotsScreen },
       { path: "pilots/:id", Component: PilotDetailScreen },
+      { path: "pilots/:pilotId/mechs/:mechId", Component: MechDetailScreen },
       { path: "deployments", Component: DeploymentsScreen },
       { path: "deployments/:id", Component: DeploymentDetailScreen },
       { path: "locations", Component: LocationsScreen },

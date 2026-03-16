@@ -1,16 +1,19 @@
 import { useState } from "react";
+import { Link } from "react-router";
+import { useNavigate } from "react-router";
 import { useData } from "../context/DataContext";
-import type { Pilot } from "../data/mockData";
-import { User, Calendar, Award, Activity, Users, Zap, FileText } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { User, Calendar, Award, Activity, FileText, Zap, Cpu, Users } from "lucide-react";
+import { Breadcrumb } from "./Breadcrumb";
 import { BackToTop } from "./BackToTop";
+import type { CompconPilot } from "../data/mockData";
+import { getFrameName, MECH_SKILL_NAMES } from "../data/compconTypes";
 
 export function PilotsScreen() {
   const { pilots } = useData();
-  const [selectedPilot, setSelectedPilot] = useState<Pilot | null>(null);
+  const [selectedPilot, setSelectedPilot] = useState<CompconPilot | null>(null);
   const navigate = useNavigate();
 
-  const getStatusColor = (status: Pilot["status"]) => {
+  const getStatusColor = (status: CompconPilot["status"]) => {
     switch (status) {
       case "ACTIVE": return "text-green-500 border-green-500/50 bg-green-500/10";
       case "STANDBY": return "text-yellow-500 border-yellow-500/50 bg-yellow-500/10";
@@ -20,7 +23,7 @@ export function PilotsScreen() {
     }
   };
 
-  const handlePilotClick = (pilot: Pilot) => {
+  const handlePilotClick = (pilot: CompconPilot) => {
     // On mobile, navigate directly to pilot detail page
     if (window.innerWidth < 1024) {
       navigate(`/pilots/${pilot.id}`);
@@ -79,6 +82,22 @@ export function PilotsScreen() {
                       {selectedPilot?.id === pilot.id ? '▶' : '□'}
                     </span>
                   </div>
+
+                  {/* Pilot Portrait */}
+                  <div className="w-24 h-24 border border-green-500/30 bg-black/50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {(pilot.cloud_portrait || pilot.portrait) ? (
+                      <img 
+                        src={pilot.cloud_portrait || pilot.portrait} 
+                        alt={pilot.callsign}
+                        className="w-full h-full object-cover opacity-80"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <User className="w-12 h-12 text-green-500/50" />
+                    )}
+                  </div>
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -91,14 +110,14 @@ export function PilotsScreen() {
                     </div>
                     <div className="text-sm text-green-600/70 mb-1">{pilot.name}</div>
                     <div className="text-xs text-green-600/60">
-                      {pilot.mech.frame} // {pilot.mech.class} // LICENSE {pilot.license}
+                      {pilot.mechs.length > 0 ? getFrameName(pilot.mechs[0].frame) : 'NO MECH'} // LEVEL {pilot.level} // {pilot.background.toUpperCase()}
                     </div>
                   </div>
                 </div>
                 <div className="text-right text-sm">
-                  <div className="text-green-400 font-bold">{pilot.missions}</div>
-                  <div className="text-xs text-green-600/70">missions</div>
-                  <div className="text-xs text-green-700/70 mt-1">{pilot.mech.designation}</div>
+                  <div className="text-green-400 font-bold">{pilot.mechs.length}</div>
+                  <div className="text-xs text-green-600/70">{pilot.mechs.length === 1 ? 'mech' : 'mechs'}</div>
+                  <div className="text-xs text-green-700/70 mt-1">LL-{pilot.level}</div>
                 </div>
               </div>
             </div>
@@ -134,39 +153,44 @@ export function PilotsScreen() {
                     <Award className="w-3 h-3 text-green-600/70" />
                     <div className="text-xs text-green-600/70">LICENSE LEVEL</div>
                   </div>
-                  <div className="text-green-400 font-bold">{selectedPilot.license}</div>
+                  <div className="text-green-400 font-bold">LL-{selectedPilot.level}</div>
                 </div>
 
                 <div className="border-l-2 border-green-500/30 pl-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="w-3 h-3 text-green-600/70" />
-                    <div className="text-xs text-green-600/70">JOIN DATE</div>
+                    <User className="w-3 h-3 text-green-600/70" />
+                    <div className="text-xs text-green-600/70">BACKGROUND</div>
                   </div>
-                  <div className="text-green-400">{new Date(selectedPilot.joinDate).toLocaleDateString()}</div>
+                  <div className="text-green-400">{selectedPilot.background}</div>
                 </div>
 
                 <div className="border-l-2 border-green-500/30 pl-3">
                   <div className="flex items-center gap-2 mb-1">
                     <Activity className="w-3 h-3 text-green-600/70" />
-                    <div className="text-xs text-green-600/70">MISSIONS COMPLETED</div>
+                    <div className="text-xs text-green-600/70">COMBAT HISTORY</div>
                   </div>
-                  <div className="text-green-400 font-bold">{selectedPilot.missions}</div>
+                  <div className="text-green-400 font-bold">{selectedPilot.combat_history.kills} Kills / {selectedPilot.combat_history.missions || 0} Missions</div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t-2 border-green-500/20 mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-3 h-3 text-green-600/70" />
-                  <div className="text-xs text-green-600/70">MECH ASSIGNMENT</div>
-                </div>
-                <div className="border-2 border-green-500/30 bg-green-500/5 p-3">
-                  <div className="font-bold mb-1 text-lg text-green-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]">
-                    {selectedPilot.mech.frame}
+              {selectedPilot.mechs.length > 0 && (
+                <div className="pt-4 border-t-2 border-green-500/20 mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Cpu className="w-3 h-3 text-green-600/70" />
+                    <div className="text-xs text-green-600/70">MECH ASSIGNMENTS ({selectedPilot.mechs.length})</div>
                   </div>
-                  <div className="text-sm text-green-600/70 mb-1">CLASS: {selectedPilot.mech.class}</div>
-                  <div className="text-xs text-green-600/60">DESIGNATION: {selectedPilot.mech.designation}</div>
+                  <div className="space-y-2">
+                    {selectedPilot.mechs.map(mech => (
+                      <div key={mech.id} className="border-2 border-cyan-500/30 bg-cyan-500/5 p-3">
+                        <div className="font-bold mb-1 text-sm text-cyan-300">
+                          {mech.name}
+                        </div>
+                        <div className="text-xs text-cyan-600/70">{getFrameName(mech.frame)}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* View Full Profile Button */}
               <Link 

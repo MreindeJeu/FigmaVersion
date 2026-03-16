@@ -14,7 +14,7 @@ export function Dashboard() {
   // Filter out classified deployments for non-admin users
   const visibleDeployments = isAdmin ? deployments : deployments.filter(d => d.status !== "CLASSIFIED");
   
-  const activePilots = pilots.filter(p => p.status === "ACTIVE" || p.status === "STANDBY").length;
+  const activePilots = pilots.filter(p => p.status === "Active" || p.status === "Standby").length;
   const recruitingDeployments = visibleDeployments.filter(d => d.status === "RECRUITING").length;
   const criticalTheaters = locations.filter(l => l.status === "CRITICAL" || l.status === "CONTESTED").length;
   const totalMissions = visibleDeployments.reduce((acc, d) => acc + d.signedUpPilots.length, 0);
@@ -99,13 +99,13 @@ export function Dashboard() {
       });
     });
 
-    // Add recent pilots (sorted by join date)
+    // Add recent pilots (sorted by last modified)
     const recentPilots = [...pilots]
-      .sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime())
+      .sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime())
       .slice(0, 2);
     
     recentPilots.forEach(pilot => {
-      const pilotDate = new Date(pilot.joinDate);
+      const pilotDate = new Date(pilot.lastModified);
       const timestamp = `${pilotDate.toISOString().split('T')[0]} ${pilotDate.toLocaleTimeString('en-US', { hour12: false })}`;
       activities.push({
         timestamp,

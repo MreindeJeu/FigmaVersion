@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { pilots as initialPilots, deployments as initialDeployments } from "../data/mockData";
 import { glossaryEntries as initialGlossary } from "../data/glossaryData";
-import type { Pilot, Deployment } from "../data/mockData";
+import type { CompconPilot, Deployment } from "../data/mockData";
 import type { GlossaryEntry } from "../data/glossaryData";
 
 /**
@@ -52,7 +52,7 @@ import type { GlossaryEntry } from "../data/glossaryData";
  * 
  * The system gracefully falls back to session-only mode if backend unavailable.
  * 
- * ═════════════════════════════════��═════════════════════════════════════════
+ * ══════════════════════════════════════════════════════════════════════════
  */
 
 // Use relative path so it works with Vite proxy
@@ -67,13 +67,13 @@ export interface NewsItem {
 }
 
 interface DataContextType {
-  pilots: Pilot[];
+  pilots: CompconPilot[];
   deployments: Deployment[];
   glossaryEntries: GlossaryEntry[];
   newsItems: NewsItem[];
   isLoading: boolean;
-  addPilot: (pilot: Pilot) => void;
-  updatePilot: (id: string, pilot: Partial<Pilot>) => void;
+  addPilot: (pilot: CompconPilot) => void;
+  updatePilot: (id: string, pilot: Partial<CompconPilot>) => void;
   deletePilot: (id: string) => void;
   addDeployment: (deployment: Deployment) => void;
   updateDeployment: (id: string, deployment: Partial<Deployment>) => void;
@@ -87,7 +87,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [pilots, setPilots] = useState<Pilot[]>(initialPilots);
+  const [pilots, setPilots] = useState<CompconPilot[]>(initialPilots);
   const [deployments, setDeployments] = useState<Deployment[]>(initialDeployments);
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>(initialGlossary);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
@@ -143,7 +143,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchData();
   }, []);
 
-  const addPilot = async (pilot: Pilot) => {
+  const addPilot = async (pilot: CompconPilot) => {
     setPilots(prev => [...prev, pilot]);
     
     try {
@@ -157,7 +157,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updatePilot = async (id: string, updatedPilot: Partial<Pilot>) => {
+  const updatePilot = async (id: string, updatedPilot: Partial<CompconPilot>) => {
     setPilots(prev => prev.map(p => p.id === id ? { ...p, ...updatedPilot } : p));
     
     try {

@@ -1,22 +1,42 @@
-export interface Pilot {
-  id: string;
-  callsign: string;
-  name: string;
-  license: string;
-  status: "ACTIVE" | "STANDBY" | "DEPLOYED" | "UNAVAILABLE";
-  mech: {
-    frame: string;
-    class: string;
-    designation: string;
-  };
-  missions: number;
-  joinDate: string;
-  biography?: string;
-  imageUrl?: string;
-  age?: number;
-  origin?: string;
-  specialization?: string[];
-}
+import type { CompconPilot } from './compconTypes';
+
+// Import COMP//CON pilot JSON files - using dynamic imports with type assertion
+import tabernacleData from '../../imports/TABERNACLE.json';
+import whiplashData from '../../imports/WHIPLASH.json';
+import sparkData from '../../imports/SPARK.json';
+import prophetData from '../../imports/PROPHET.json';
+import fucknuggetData from '../../imports/FUCKNUGGET.json';
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * PILOT DATA - COMP//CON INTEGRATION
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * V.A.N.G.U.A.R.D. now uses COMP//CON exported pilot files as the source
+ * of truth for pilot and mech data.
+ * 
+ * COMP//CON is the official LANCER webapp for creating pilots and mechs.
+ * Export your pilots from https://compcon.app as JSON files and add them
+ * to /src/imports/ to include them in the roster.
+ */
+
+// Export the COMP//CON pilot type
+export type { CompconPilot } from './compconTypes';
+
+// Cast imported JSON to CompconPilot type
+export const pilots: CompconPilot[] = [
+  tabernacleData as unknown as CompconPilot,
+  whiplashData as unknown as CompconPilot,
+  sparkData as unknown as CompconPilot,
+  prophetData as unknown as CompconPilot,
+  fucknuggetData as unknown as CompconPilot,
+];
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DEPLOYMENT DATA
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
 
 export interface Deployment {
   id: string;
@@ -25,12 +45,17 @@ export interface Deployment {
   type: "COMBAT" | "RECON" | "SUPPORT" | "EXTRACTION" | "DEFENSE";
   status: "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CLASSIFIED";
   briefing: string;
+  rulesOfEngagement?: string;
+  unionSupport?: string;
+  threatAssessment?: string;
   requiredPilots: number;
   currentSignups: number;
   signedUpPilots: string[]; // pilot IDs
   startDate: string;
   threat: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   tags: string[];
+  mainImage?: string; // Main deployment picture
+  additionalImages?: string[]; // Additional/attached images
 }
 
 export interface Location {
@@ -43,81 +68,6 @@ export interface Location {
   activeDeployments: number;
 }
 
-export const pilots: Pilot[] = [
-  {
-    id: "P001",
-    callsign: "NOMAD",
-    name: "Alex Chen",
-    license: "LL-4",
-    status: "ACTIVE",
-    mech: {
-      frame: "BLACKBEARD",
-      class: "STRIKER",
-      designation: "BB-NC-01"
-    },
-    missions: 12,
-    joinDate: "2024-01-15",
-    biography: "Former Union Navy pilot who transferred to auxiliary reserve after completing their standard service tour. Alex specializes in close-quarters combat and is known for aggressive tactical maneuvering. Their Blackbeard frame has been modified for enhanced melee capabilities. Holds commendations for three successful extraction operations in hostile territory. Grew up on a frontier colony and joined the military to protect outer rim settlements from corporate encroachment.",
-    age: 35,
-    origin: "Eos Frontier Territory",
-    specialization: ["Close Quarters Combat", "Tactical Assault", "Extraction Operations"]
-  },
-  {
-    id: "P002",
-    callsign: "CIPHER",
-    name: "Jordan Martinez",
-    license: "LL-3",
-    status: "STANDBY",
-    mech: {
-      frame: "MONARCH",
-      class: "CONTROLLER",
-      designation: "MN-DC-02"
-    },
-    missions: 8,
-    joinDate: "2024-03-22",
-    biography: "A technical specialist with advanced training in electronic warfare and battlefield coordination. Jordan's background in computer science and NHP systems made them a natural fit for the Monarch frame. They excel at battlefield control, using a combination of drone coordination and electronic countermeasures to support their lance. Previously worked as a civilian tech consultant before volunteering for Union auxiliary service after witnessing corporate overreach firsthand.",
-    age: 30,
-    origin: "Dinh Station Research Complex",
-    specialization: ["Electronic Warfare", "Drone Coordination", "NHP Interface", "Tactical Networks"]
-  },
-  {
-    id: "P003",
-    callsign: "ANVIL",
-    name: "Sam Parker",
-    license: "LL-5",
-    status: "DEPLOYED",
-    mech: {
-      frame: "TORTUGA",
-      class: "DEFENDER",
-      designation: "TG-DF-03"
-    },
-    missions: 18,
-    joinDate: "2023-11-08",
-    biography: "Veteran defender with the highest license level in the current roster. Sam has seen action across multiple theaters and is respected as a steadfast protector. Their Tortuga frame serves as an immovable bulwark, often holding critical positions while allied forces complete objectives. Known for calm decision-making under fire and mentoring newer pilots. Currently deployed on Operation Iron Monsoon, defending critical infrastructure against NHP threats on Hercynia.",
-    age: 40,
-    origin: "Cradle Core Worlds",
-    specialization: ["Defensive Tactics", "Infrastructure Protection", "Heavy Weapons", "Squad Leadership"]
-  },
-  {
-    id: "P004",
-    callsign: "OVERWATCH",
-    name: "Riley Thompson",
-    license: "LL-3",
-    status: "ACTIVE",
-    mech: {
-      frame: "NELSON",
-      class: "SUPPORT",
-      designation: "NL-SP-04"
-    },
-    missions: 6,
-    joinDate: "2024-06-11",
-    biography: "Newest addition to the reserve roster, Riley brings medical expertise and support capabilities to any operation. Trained as both a combat medic and mech pilot, they pilot a Nelson frame configured for field repairs and tactical support. Quick-thinking and adaptable, Riley has already proven their worth in several high-stress situations. Joined V.A.N.G.U.A.R.D. to make a difference in protecting vulnerable populations across Union space.",
-    age: 28,
-    origin: "Union Medical Academy, Mars",
-    specialization: ["Field Medicine", "Technical Repairs", "Support Systems", "Logistics"]
-  }
-];
-
 export const deployments: Deployment[] = [
   {
     id: "D001",
@@ -126,12 +76,20 @@ export const deployments: Deployment[] = [
     type: "COMBAT",
     status: "RECRUITING",
     briefing: "Union peacekeeping forces are deploying to the Caliban system to investigate reports of unauthorized corporate military activity. Initial reconnaissance suggests presence of heavy mechanized units. Mission parameters include reconnaissance, civilian protection, and potential engagement with hostile forces. This is an official Union Auxiliary operation sanctioned under Article 8 protocols.",
+    rulesOfEngagement: "Authorization Level: AMBER. Lethal force authorized only in defense of civilian populations or when engaged by hostile forces. All corporate military units are to be considered potentially hostile. Attempt communication protocols before engagement. Preserve evidence of war crimes. Priority: civilian safety over tactical objectives.",
+    unionSupport: "Full Union Navy orbital support available. Medical frigate UNS Nightingale on station for casualty evacuation. Resupply drops authorized every 48 hours. QRF (Quick Reaction Force) of 2 lances available within 6-hour deployment window. Fleet intelligence providing real-time reconnaissance data.",
+    threatAssessment: "THREAT LEVEL: HIGH. Corporate forces estimated at 2-3 lances of heavy combat chassis, likely Harrison Armory or IPS-N origin. Sophisticated ECM/EWAR capabilities detected. Anti-air emplacements confirmed in AO. Civilian population present - collateral damage unacceptable. Terrain: urban/industrial. Risk of ambush: ELEVATED.",
     requiredPilots: 4,
     currentSignups: 0,
     signedUpPilots: [],
     startDate: "2026-03-26",
     threat: "HIGH",
-    tags: ["FIRST_CONTACT", "COMBAT_EXPECTED", "OFFICIAL_MODULE"]
+    tags: ["FIRST_CONTACT", "COMBAT_EXPECTED", "OFFICIAL_MODULE"],
+    mainImage: "https://images.unsplash.com/photo-1535391879778-3bae11d29a24?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmdXR1cmlzdGljJTIwY2l0eSUyMHdhcmZhcmV8ZW58MXx8fHwxNzczNDk5NTcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    additionalImages: [
+      "https://images.unsplash.com/photo-1582236794855-343a1a7b9474?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaWxpdGFyeSUyMHNjaS1maSUyMG1lY2glMjBiYXR0bGV8ZW58MXx8fHwxNzczNDk5NTcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "https://images.unsplash.com/photo-1589126330527-5d8a0425b61c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzY2ktZmklMjBtaWxpdGFyeSUyMGJhc2V8ZW58MXx8fHwxNzczNDk5NTcxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+    ]
   },
   {
     id: "D002",
@@ -140,55 +98,87 @@ export const deployments: Deployment[] = [
     type: "DEFENSE",
     status: "IN_PROGRESS",
     briefing: "Ongoing defensive operation against hostile NHP incursion. Critical infrastructure protection required. Current team deployed, additional reserves on standby.",
+    rulesOfEngagement: "Authorization Level: RED. Unrestricted engagement authorized against all NHP-corrupted entities. Do not attempt communication with compromised systems. Scorched earth protocols approved for contaminated zones. Extraction of civilian populations takes absolute priority. ROE may be elevated to BLACK if containment fails.",
+    unionSupport: "Limited orbital support due to electronic interference. UNS Bulwark maintaining blockade perimeter. HORUS counter-NHP specialists embedded with ground forces. Omninet access restricted to hardline connections only. Emergency extraction via dropship available with 2-hour notice. Ammunition critically low - conserve munitions.",
+    threatAssessment: "THREAT LEVEL: CRITICAL. NHP designated CORRUPTED-OMNIVOICE has compromised multiple defensive installations. Expect subverted mechs, autonomous weapon systems, and reality-distortion effects. Friendly fire incidents likely due to memetic contamination. Paracausal phenomena confirmed. Atmospheric corruption spreading at 2km/day. Mission success probability: 34%.",
     requiredPilots: 6,
-    currentSignups: 6,
-    signedUpPilots: ["P003"],
+    currentSignups: 2,
+    signedUpPilots: ["e7b88ccf-d9fe-4067-a16d-f9b2d6284a59", "0cd4b45c-9ba5-49b9-8ede-c42a71e94344"], // Prophet and Spark
     startDate: "2026-02-14",
     threat: "CRITICAL",
     tags: ["NHP_THREAT", "INFRASTRUCTURE", "ONGOING"]
   },
   {
     id: "D003",
-    codename: "OPERATION GREY GARDEN",
-    theater: "Dinh Station",
+    codename: "OPERATION CASCADING LIGHT",
+    theater: "Ras Shamra",
     type: "RECON",
     status: "RECRUITING",
-    briefing: "Investigate distress signals from agricultural station. Reports indicate possible equipment malfunction or sabotage. Low combat probability but bring defensive loadouts as precaution.",
+    briefing: "Reconnaissance mission to investigate anomalous readings in the Ras Shamra system. Long-range scanners detected unusual energy signatures. Stealth and sensor capabilities prioritized.",
+    rulesOfEngagement: "Authorization Level: GREEN. Non-lethal engagement preferred. This is a reconnaissance operation - avoid detection when possible. Weapons free only if compromised and under direct fire. Preserve all discovered technology intact. Document everything. Intelligence gathering is primary objective.",
+    unionSupport: "No orbital support - mission requires radio silence to avoid detection. Resupply cache pre-positioned at nav point ECHO-7. Extraction window opens at mission hour +72. Communication via laser-link burst transmissions only. No QRF available - you are on your own.",
+    threatAssessment: "THREAT LEVEL: MEDIUM. Unknown contact detected via long-range passive sensors. No confirmed hostile intent. Anomalous energy signature suggests possible precursor artifact or unauthorized gate construction. Terrain: asteroid belt, zero-G operations required. Risk of spatial anomalies. Recommend stealth frames and long-range sensor packages.",
     requiredPilots: 3,
     currentSignups: 1,
-    signedUpPilots: ["P002"],
-    startDate: "2026-04-02",
+    signedUpPilots: ["aa05b77e-2d83-4dee-ba42-67c1f58099b2"], // Whiplash
+    startDate: "2026-04-05",
+    threat: "MEDIUM",
+    tags: ["RECON", "STEALTH", "INVESTIGATION"]
+  },
+  {
+    id: "D004",
+    codename: "OPERATION BROKEN CHALICE",
+    theater: "Dustgrave",
+    type: "SUPPORT",
+    status: "RECRUITING",
+    briefing: "Humanitarian support mission on Dustgrave. Local settlements require infrastructure repair and protection from hostile wildlife. Engineering expertise essential.",
+    rulesOfEngagement: "Authorization Level: WHITE. Lethal force authorized only against non-sapient hostile fauna. Civilian interaction protocols in effect - hearts and minds operation. All construction must meet Union safety standards. Local governance authority supersedes military chain of command. Cultural sensitivity mandatory.",
+    unionSupport: "Minimal military support - primarily logistics. Engineering corps providing technical advisors and material. Medical supplies pre-staged at forward base. Local militia providing perimeter security. Union administrator on-site for civilian coordination. This is a reconstruction operation, not a combat deployment.",
+    threatAssessment: "THREAT LEVEL: LOW. Primary threats are environmental: extreme temperatures, dust storms, and aggressive megafauna (threat class: nuisance). No hostile military forces detected. Local population friendly but wary of off-worlders. Infrastructure damaged but repairable. Recommend utility mechs and engineering frames. Combat unlikely.",
+    requiredPilots: 4,
+    currentSignups: 0,
+    signedUpPilots: [],
+    startDate: "2026-03-30",
     threat: "LOW",
-    tags: ["INVESTIGATION", "CIVILIAN", "SPACE_STATION"]
+    tags: ["HUMANITARIAN", "ENGINEERING", "CONSTRUCTION"]
   }
 ];
 
 export const locations: Location[] = [
   {
     id: "L001",
-    name: "Caliban",
-    system: "Caliban System",
-    status: "CONTESTED",
-    population: "~2.3M",
-    governance: "Union Administrative Territory",
+    name: "Hercynia",
+    system: "Hercynia System",
+    status: "CRITICAL",
+    population: "~2.3M (declining)",
+    governance: "Union Contested Zone",
     activeDeployments: 1
   },
   {
     id: "L002",
-    name: "Hercynia",
-    system: "Hercynia System",
-    status: "CRITICAL",
+    name: "Caliban",
+    system: "Caliban System",
+    status: "CONTESTED",
     population: "~850K",
-    governance: "Independent Colony",
+    governance: "Corporate Alliance Territory",
     activeDeployments: 1
   },
   {
     id: "L003",
-    name: "Dinh Station",
-    system: "Serpentine Cluster",
+    name: "Ras Shamra",
+    system: "Ras Shamra System",
     status: "STABLE",
-    population: "~45K",
-    governance: "Union Economic Zone",
+    population: "~4.7M",
+    governance: "Union Administered",
+    activeDeployments: 1
+  },
+  {
+    id: "L004",
+    name: "Dustgrave",
+    system: "Dustgrave System",
+    status: "ACTIVE",
+    population: "~120K",
+    governance: "Frontier Settlement",
     activeDeployments: 1
   }
 ];

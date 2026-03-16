@@ -1,7 +1,7 @@
 import { useData } from "../context/DataContext";
 import { useAdmin } from "../context/AdminContext";
 import type { Deployment } from "../data/mockData";
-import { MapPin, Users, Calendar, Target, FileText, AlertTriangle } from "lucide-react";
+import { MapPin, Users, Calendar, Target, FileText, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { Link } from "react-router";
 import { BackToTop } from "./BackToTop";
 
@@ -89,48 +89,66 @@ export function DeploymentsScreen() {
 
               {/* Header Row */}
               <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    {deployment.threat === "CRITICAL" ? (
-                      <span className="text-red-500 text-xl animate-pulse">⚠</span>
-                    ) : (
-                      <span className="text-green-500 text-xl">▶</span>
-                    )}
-                    <h3 className="text-xl font-bold text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.4)]">
-                      {deployment.codename}
-                    </h3>
-                    <span className={`text-xs px-2 py-1 border font-bold tracking-wider ${getStatusColor(deployment.status)}`}>
-                      {deployment.status.replace("_", " ")}
-                    </span>
-                    <span className={`text-xs px-2 py-1 border font-bold tracking-wider ${getThreatColor(deployment.threat)}`}>
-                      {deployment.threat}
-                    </span>
-                  </div>
-
-                  {/* Meta Info */}
-                  <div className="flex items-center gap-4 text-xs text-green-600/70">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      <span>{deployment.theater}</span>
+                <div className="flex items-start gap-4 flex-1">
+                  {/* Deployment Image Thumbnail */}
+                  {deployment.mainImage && (
+                    <div className="w-40 h-40 border-2 border-green-500/30 bg-black/50 overflow-hidden flex-shrink-0">
+                      <img 
+                        src={deployment.mainImage} 
+                        alt={deployment.codename}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <span>//</span>
-                    <span>{deployment.type}</span>
-                    <span>//</span>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      <span>{new Date(deployment.startDate).toLocaleDateString()}</span>
-                    </div>
-                    <span>//</span>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      <span className={`font-bold ${spotsRemaining > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
-                        {currentSignups}/{deployment.requiredPilots}
+                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      {deployment.threat === "CRITICAL" ? (
+                        <span className="text-red-500 text-xl animate-pulse">⚠</span>
+                      ) : (
+                        <span className="text-green-500 text-xl">▶</span>
+                      )}
+                      <h3 className="text-xl font-bold text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.4)]">
+                        {deployment.codename}
+                      </h3>
+                      <span className={`text-xs px-2 py-1 border font-bold tracking-wider ${getStatusColor(deployment.status)}`}>
+                        {deployment.status.replace("_", " ")}
                       </span>
+                      <span className={`text-xs px-2 py-1 border font-bold tracking-wider ${getThreatColor(deployment.threat)}`}>
+                        {deployment.threat}
+                      </span>
+                    </div>
+
+                    {/* Meta Info */}
+                    <div className="flex items-center gap-4 text-xs text-green-600/70 mb-3 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{deployment.theater}</span>
+                      </div>
+                      <span>//</span>
+                      <span>{deployment.type}</span>
+                      <span>//</span>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{new Date(deployment.startDate).toLocaleDateString()}</span>
+                      </div>
+                      <span>//</span>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        <span className={`font-bold ${spotsRemaining > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                          {currentSignups}/{deployment.requiredPilots}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Brief Preview */}
+                    <div className="text-sm text-green-500/70 border-l-2 border-green-500/20 pl-3">
+                      {deployment.briefing.substring(0, 200)}...
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                   {deployment.status === "RECRUITING" && spotsRemaining > 0 && (
                     <span className="px-3 py-1 border border-yellow-500/50 bg-yellow-500/10 text-yellow-400 text-xs font-bold">
                       {spotsRemaining} SPOTS
@@ -138,11 +156,6 @@ export function DeploymentsScreen() {
                   )}
                   <FileText className="w-5 h-5 text-green-500/50" />
                 </div>
-              </div>
-
-              {/* Brief Preview */}
-              <div className="text-sm text-green-500/70 border-l-2 border-green-500/20 pl-3">
-                {deployment.briefing.substring(0, 150)}...
               </div>
             </Link>
           );

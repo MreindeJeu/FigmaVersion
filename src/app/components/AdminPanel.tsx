@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useData } from "../context/DataContext";
 import { useAdmin } from "../context/AdminContext";
-import { Shield, Users, FileText, TrendingUp, Calendar, Database, Terminal, X, Plus, Edit, Trash2, Book, ArrowLeft, ChevronDown, ChevronUp, Search, Archive } from "lucide-react";
-import type { Pilot, Deployment } from "../data/mockData";
+import { Shield, Users, FileText, TrendingUp, Calendar, Database, Terminal, X, Plus, Edit, Trash2, Book, ArrowLeft, ChevronDown, ChevronUp, Search, Archive, Upload } from "lucide-react";
+import type { CompconPilot, Deployment } from "../data/mockData";
 import type { GlossaryEntry } from "../data/glossaryData";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { ClassifiedGuard } from "./ClassifiedGuard";
+import { getFrameName } from "../data/compconTypes";
 
 type ModalType = "deployment" | "pilot" | "glossary" | null;
 
@@ -14,7 +15,7 @@ export function AdminPanel() {
   const { pilots, deployments, glossaryEntries, addPilot, addDeployment, addGlossaryEntry, deletePilot, deleteDeployment, updatePilot, updateDeployment, updateGlossaryEntry, deleteGlossaryEntry } = useData();
   const { isAdmin } = useAdmin();
   const [modalOpen, setModalOpen] = useState<ModalType>(null);
-  const [editingItem, setEditingItem] = useState<Deployment | Pilot | GlossaryEntry | null>(null);
+  const [editingItem, setEditingItem] = useState<Deployment | CompconPilot | GlossaryEntry | null>(null);
   const navigate = useNavigate();
   
   // Glossary section state - MUST declare all hooks before any conditional returns
@@ -27,8 +28,72 @@ export function AdminPanel() {
   // Completed missions section state
   const [completedExpanded, setCompletedExpanded] = useState(false);
 
+  // Pilot upload state
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadExpanded, setUploadExpanded] = useState(false);
+
   const categories = ["ALL", "TECHNOLOGY", "ORGANIZATION", "CULTURE", "GEOGRAPHY", "MILITARY", "SCIENCE"];
   const classifications = ["ALL", "PUBLIC", "RESTRICTED", "CLASSIFIED"];
+
+  // Handle file uploads
+  const handleFiles = (files: FileList) => {
+    Array.from(files).forEach(file => {
+      if (file.type !== "application/json") {
+        toast.error(`Invalid file type: ${file.name} - Must be JSON`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          
+          // Validate it's a COMP//CON pilot file
+          if (data && data.id && data.callsign && data.name) {
+            // Check for duplicate pilot by ID
+            const existingPilot = pilots.find(p => p.id === data.id);
+            if (existingPilot) {
+              toast.error(`Pilot already exists: ${data.callsign} (${existingPilot.name})`);
+              return;
+            }
+            
+            addPilot(data);
+            toast.success(`Added pilot: ${data.callsign}`);
+          } else {
+            toast.error(`Invalid pilot data in ${file.name} - Missing required fields`);
+          }
+        } catch (error) {
+          toast.error(`Failed to parse ${file.name} - Invalid JSON`);
+        }
+      };
+      reader.onerror = () => {
+        toast.error(`Failed to read file: ${file.name}`);
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  };
 
   // Separate active and completed deployments
   const activeDeployments = deployments.filter(d => d.status !== "COMPLETED");
@@ -320,6 +385,77 @@ export function AdminPanel() {
 
       {/* Pilot Management */}
       <div className="mb-8">
+        <button 
+          onClick={() => setUploadExpanded(!uploadExpanded)}
+          className="w-full flex items-center gap-2 mb-3 hover:bg-green-500/5 p-2 -ml-2 transition-all group"
+        >
+          <Upload className="w-4 h-4 text-green-500" />
+          <h2 className="text-sm font-bold text-green-500 tracking-wider">// PILOT UPLOAD</h2>
+          <div className="flex-1 h-px bg-green-500/30" />
+          {uploadExpanded ? (
+            <ChevronUp className="w-4 h-4 text-green-500 group-hover:drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-green-500 group-hover:drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
+          )}
+        </button>
+        
+        {uploadExpanded && (
+          <div className="border-2 border-green-500/30 bg-green-500/5 p-6 mb-4">
+            <div 
+              className={`relative border-2 border-dashed transition-all cursor-pointer ${
+                isDragging 
+                  ? "border-green-500 bg-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.3)]" 
+                  : "border-green-500/50 bg-black/50 hover:border-green-500 hover:bg-green-500/10"
+              }`}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById("pilot-file-input")?.click()}
+            >
+              <input
+                id="pilot-file-input"
+                type="file"
+                multiple
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files) {
+                    handleFiles(files);
+                  }
+                }}
+              />
+              
+              <div className="p-8 text-center">
+                <Upload className={`w-12 h-12 mx-auto mb-4 transition-all ${
+                  isDragging 
+                    ? "text-green-400 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]" 
+                    : "text-green-500/70"
+                }`} />
+                
+                <div className="text-sm font-bold text-green-400 mb-2 tracking-wider">
+                  {isDragging ? "DROP FILES HERE" : "DRAG & DROP COMP//CON PILOT JSON"}
+                </div>
+                
+                <div className="text-xs text-green-600/70 mb-4">
+                  or click to browse files
+                </div>
+                
+                <div className="inline-block px-4 py-2 border border-green-500/50 bg-green-500/10 text-xs text-green-400 font-mono">
+                  .JSON FILES ONLY
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 text-xs text-green-600/70 space-y-1">
+              <div>// SUPPORTED: COMP//CON exported pilot JSON files</div>
+              <div>// EXPORT FROM: <a href="https://compcon.app" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline">https://compcon.app</a></div>
+              <div>// Multiple files can be uploaded simultaneously</div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-3">
           <Users className="w-4 h-4 text-green-500" />
           <h2 className="text-sm font-bold text-green-500 tracking-wider">// PILOT ROSTER</h2>
@@ -332,7 +468,7 @@ export function AdminPanel() {
                 <div>
                   <div className="font-bold text-green-400 mb-1">{pilot.callsign}</div>
                   <div className="text-xs text-green-600/70">{pilot.name}</div>
-                  <div className="text-[10px] text-green-700/70">{pilot.license}</div>
+                  <div className="text-[10px] text-green-700/70">LL-{pilot.level} // {pilot.licenses.length} licenses</div>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                   <button
@@ -367,7 +503,7 @@ export function AdminPanel() {
                   {pilot.status}
                 </div>
                 <div className="text-green-600/70">
-                  {pilot.mech.frame} • {pilot.missions} missions
+                  {pilot.mechs.length > 0 ? getFrameName(pilot.mechs[0].frame) : 'NO MECH'} • LL-{pilot.level}
                 </div>
               </div>
             </div>
@@ -548,7 +684,7 @@ export function AdminPanel() {
 
       {/* Modals */}
       {modalOpen === "deployment" && <DeploymentModal onClose={() => { setModalOpen(null); setEditingItem(null); }} editingItem={editingItem as Deployment | null} />}
-      {modalOpen === "pilot" && <PilotModal onClose={() => { setModalOpen(null); setEditingItem(null); }} editingItem={editingItem as Pilot | null} />}
+      {modalOpen === "pilot" && <PilotModal onClose={() => { setModalOpen(null); setEditingItem(null); }} editingItem={editingItem as CompconPilot | null} />}
       {modalOpen === "glossary" && <GlossaryModal onClose={() => { setModalOpen(null); setEditingItem(null); }} editingItem={editingItem as GlossaryEntry | null} />}
     </div>
   );
@@ -566,7 +702,9 @@ function DeploymentModal({ onClose, editingItem }: { onClose: () => void, editin
     requiredPilots: editingItem?.requiredPilots ? String(editingItem.requiredPilots) : "4",
     startDate: editingItem?.startDate || "",
     threat: editingItem?.threat || "MEDIUM" as Deployment["threat"],
-    tags: editingItem?.tags ? editingItem.tags.join(', ') : ""
+    tags: editingItem?.tags ? editingItem.tags.join(', ') : "",
+    mainImage: editingItem?.mainImage || "",
+    additionalImages: editingItem?.additionalImages ? editingItem.additionalImages.join('\n') : ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -584,7 +722,11 @@ function DeploymentModal({ onClose, editingItem }: { onClose: () => void, editin
       signedUpPilots: editingItem ? editingItem.signedUpPilots : [],
       startDate: formData.startDate,
       threat: formData.threat,
-      tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+      tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+      mainImage: formData.mainImage || undefined,
+      additionalImages: formData.additionalImages 
+        ? formData.additionalImages.split('\n').map(url => url.trim()).filter(Boolean)
+        : undefined
     };
 
     if (editingItem) {
@@ -738,6 +880,37 @@ function DeploymentModal({ onClose, editingItem }: { onClose: () => void, editin
             />
           </div>
 
+          <div className="border-t-2 border-green-500/20 pt-4 space-y-4">
+            <div className="text-xs text-green-600/70 mb-2">// OPERATION IMAGES</div>
+            
+            <div>
+              <label className="block text-xs text-green-600/70 mb-2">MAIN IMAGE URL</label>
+              <input
+                type="text"
+                value={formData.mainImage}
+                onChange={(e) => setFormData({ ...formData, mainImage: e.target.value })}
+                className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
+                placeholder="figma:asset/abc123.png or https://..."
+              />
+              <div className="text-[10px] text-green-600/50 mt-1">
+                // Main deployment picture displayed prominently
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-green-600/70 mb-2">ADDITIONAL IMAGES (one per line)</label>
+              <textarea
+                value={formData.additionalImages}
+                onChange={(e) => setFormData({ ...formData, additionalImages: e.target.value })}
+                className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50 min-h-[80px]"
+                placeholder="figma:asset/xyz789.png&#10;figma:asset/def456.png&#10;https://..."
+              />
+              <div className="text-[10px] text-green-600/50 mt-1">
+                // Additional images accessible via dropdown menu
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
@@ -760,55 +933,11 @@ function DeploymentModal({ onClose, editingItem }: { onClose: () => void, editin
   );
 }
 
-// Pilot Creation Modal
-function PilotModal({ onClose, editingItem }: { onClose: () => void, editingItem: Pilot | null }) {
-  const { addPilot, updatePilot, pilots } = useData();
-  const [formData, setFormData] = useState({
-    callsign: editingItem?.callsign || "",
-    name: editingItem?.name || "",
-    license: editingItem?.license || "LL-0",
-    status: editingItem?.status || "ACTIVE" as Pilot["status"],
-    mechFrame: editingItem?.mech.frame || "",
-    mechClass: editingItem?.mech.class || "",
-    mechDesignation: editingItem?.mech.designation || "",
-    age: editingItem?.age ? String(editingItem.age) : "",
-    origin: editingItem?.origin || "",
-    specialization: editingItem?.specialization ? editingItem.specialization.join(', ') : ""
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const newPilot: Pilot = {
-      id: editingItem ? editingItem.id : `P${String(pilots.length + 1).padStart(3, '0')}`,
-      callsign: formData.callsign,
-      name: formData.name,
-      license: formData.license,
-      status: formData.status,
-      mech: {
-        frame: formData.mechFrame,
-        class: formData.mechClass,
-        designation: formData.mechDesignation
-      },
-      missions: editingItem ? editingItem.missions : 0,
-      joinDate: editingItem ? editingItem.joinDate : new Date().toISOString().split('T')[0],
-      age: formData.age ? parseInt(formData.age) : undefined,
-      origin: formData.origin || undefined,
-      specialization: formData.specialization ? formData.specialization.split(',').map(s => s.trim()).filter(Boolean) : undefined
-    };
-
-    if (editingItem) {
-      updatePilot(newPilot.id, newPilot);
-      toast.success(`Updated pilot: ${newPilot.callsign}`);
-    } else {
-      addPilot(newPilot);
-      toast.success(`Added pilot: ${newPilot.callsign}`);
-    }
-    onClose();
-  };
-
+// Pilot Management Modal - COMP//CON Integration Notice
+function PilotModal({ onClose, editingItem }: { onClose: () => void, editingItem: CompconPilot | null }) {
+  const navigate = useNavigate();
+  
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Only close if clicking directly on the backdrop, not on child elements
     if (e.target === e.currentTarget) {
       onClose();
     }
@@ -819,171 +948,79 @@ function PilotModal({ onClose, editingItem }: { onClose: () => void, editingItem
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" 
       onMouseDown={handleBackdropClick}
     >
-      <div className="border-2 border-green-500/50 bg-black/95 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+      <div className="border-2 border-yellow-500/50 bg-black/95 p-8 max-w-2xl w-full shadow-[0_0_30px_rgba(234,179,8,0.3)]">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="text-xs text-green-600/70 mb-1">// {editingItem ? "EDIT PILOT" : "NEW PILOT REGISTRATION"}</div>
-            <h2 className="text-2xl font-bold text-green-400 tracking-wider">{editingItem ? "UPDATE PILOT" : "ADD PILOT"}</h2>
+            <div className="text-xs text-yellow-600/70 mb-1">// SYSTEM NOTICE</div>
+            <h2 className="text-2xl font-bold text-yellow-400 tracking-wider">COMP//CON INTEGRATION</h2>
           </div>
           <button onClick={onClose} className="p-2 border border-red-500/30 bg-red-500/5 hover:bg-red-500/20 transition-all">
             <X className="w-5 h-5 text-red-400" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-green-600/70 mb-2">CALLSIGN *</label>
-              <input
-                type="text"
-                required
-                value={formData.callsign}
-                onChange={(e) => setFormData({ ...formData, callsign: e.target.value.toUpperCase() })}
-                className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
-                placeholder="RAVEN"
-              />
-            </div>
+        <div className="space-y-6">
+          <div className="border-2 border-yellow-500/30 bg-yellow-500/5 p-6">
+            <div className="text-sm text-yellow-400 leading-relaxed space-y-4">
+              <p className="font-bold">
+                ⚠ V.A.N.G.U.A.R.D. now uses COMP//CON pilot data files.
+              </p>
+              
+              <p>
+                Pilots are managed through the official LANCER webapp COMP//CON at{' '}
+                <a 
+                  href="https://compcon.app" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-green-400 underline hover:text-green-300"
+                >
+                  https://compcon.app
+                </a>
+              </p>
 
-            <div>
-              <label className="block text-xs text-green-600/70 mb-2">FULL NAME *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
-                placeholder="Jane Doe"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs text-green-600/70 mb-2">LICENSE LEVEL *</label>
-              <select
-                value={formData.license}
-                onChange={(e) => setFormData({ ...formData, license: e.target.value })}
-                className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 outline-none font-mono focus:border-green-500/50"
-              >
-                <option value="LL-0">LL-0</option>
-                <option value="LL-1">LL-1</option>
-                <option value="LL-2">LL-2</option>
-                <option value="LL-3">LL-3</option>
-                <option value="LL-4">LL-4</option>
-                <option value="LL-5">LL-5</option>
-                <option value="LL-6">LL-6</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-green-600/70 mb-2">STATUS *</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as Pilot["status"] })}
-                className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 outline-none font-mono focus:border-green-500/50"
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="STANDBY">STANDBY</option>
-                <option value="DEPLOYED">DEPLOYED</option>
-                <option value="UNAVAILABLE">UNAVAILABLE</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-green-600/70 mb-2">AGE</label>
-              <input
-                type="number"
-                min="18"
-                max="100"
-                value={formData.age}
-                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 outline-none font-mono focus:border-green-500/50"
-                placeholder="30"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs text-green-600/70 mb-2">ORIGIN</label>
-            <input
-              type="text"
-              value={formData.origin}
-              onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-              className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
-              placeholder="Mars Colony, Sol System"
-            />
-          </div>
-
-          <div className="border-t-2 border-green-500/20 pt-4">
-            <div className="text-xs text-green-600/70 mb-3">// MECH CONFIGURATION</div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs text-green-600/70 mb-2">FRAME *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.mechFrame}
-                  onChange={(e) => setFormData({ ...formData, mechFrame: e.target.value.toUpperCase() })}
-                  className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
-                  placeholder="EVEREST"
-                />
+              <div className="border-l-2 border-yellow-500/50 pl-4 text-xs text-yellow-600/80 space-y-2">
+                <p>// To add or edit pilots:</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Create/edit your pilot in COMP//CON</li>
+                  <li>Export the pilot as a JSON file</li>
+                  <li>Add the JSON file to /src/imports/</li>
+                  <li>Update /src/app/data/mockData.ts to import the pilot</li>
+                </ol>
               </div>
 
-              <div>
-                <label className="block text-xs text-green-600/70 mb-2">CLASS *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.mechClass}
-                  onChange={(e) => setFormData({ ...formData, mechClass: e.target.value.toUpperCase() })}
-                  className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
-                  placeholder="STRIKER"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-green-600/70 mb-2">DESIGNATION *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.mechDesignation}
-                  onChange={(e) => setFormData({ ...formData, mechDesignation: e.target.value.toUpperCase() })}
-                  className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
-                  placeholder="EV-01"
-                />
-              </div>
+              {editingItem && (
+                <div className="pt-4 border-t border-yellow-500/30">
+                  <p className="text-xs text-yellow-600/70 mb-2">// CURRENT PILOT</p>
+                  <div className="text-green-400">
+                    <div className="font-bold">{editingItem.callsign}</div>
+                    <div className="text-sm text-green-600/70">{editingItem.name}</div>
+                    <div className="text-xs text-green-600/70 mt-1">
+                      LL-{editingItem.level} // {editingItem.mechs.length} mech{editingItem.mechs.length !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigate(`/pilots/${editingItem.id}`);
+                      onClose();
+                    }}
+                    className="mt-3 px-4 py-2 border-2 border-green-500/50 bg-green-500/10 hover:bg-green-500/20 hover:border-green-500 transition-all text-sm font-bold text-green-400 tracking-wider"
+                  >
+                    VIEW PILOT PROFILE ▶
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-green-600/70 mb-2">SPECIALIZATIONS (comma-separated)</label>
-            <input
-              type="text"
-              value={formData.specialization}
-              onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-              className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 placeholder-green-600/50 outline-none font-mono focus:border-green-500/50"
-              placeholder="Close Combat, Recon, Electronic Warfare"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
+          <div className="flex justify-end">
             <button
-              type="submit"
-              className="flex-1 p-3 border-2 border-green-500 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold tracking-wider transition-all"
-            >
-              {editingItem ? <Edit className="w-4 h-4 inline mr-2" /> : <Plus className="w-4 h-4 inline mr-2" />}
-              {editingItem ? "UPDATE PILOT" : "ADD PILOT"}
-            </button>
-            <button
-              type="button"
               onClick={onClose}
-              className="px-6 p-3 border-2 border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold tracking-wider transition-all"
+              className="px-6 py-3 border-2 border-green-500/50 bg-green-500/10 hover:bg-green-500/20 hover:border-green-500 text-green-400 font-bold tracking-wider transition-all"
             >
-              CANCEL
+              UNDERSTOOD
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
