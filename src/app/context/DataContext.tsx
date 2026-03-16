@@ -3,6 +3,7 @@ import { pilots as initialPilots, deployments as initialDeployments, locations a
 import { glossaryEntries as initialGlossary } from "../data/glossaryData";
 import type { CompconPilot, Deployment, Location } from "../data/mockData";
 import type { GlossaryEntry } from "../data/glossaryData";
+import * as api from "../services/api";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -21,33 +22,20 @@ import type { GlossaryEntry } from "../data/glossaryData";
  * 2. VISUAL STUDIO MODE (File-Based Persistence):
  *    - Connects to Node.js backend server running on port 3001
  *    - API proxied through Vite to '/api' endpoints
- *    - Data persisted to JSON files in ./data/ directory:
- *      • ./data/pilots.json
- *      • ./data/deployments.json  
- *      • ./data/glossary.json
- *      • ./data/locations.json
+ *    - Data persisted to individual JSON files in ./data/ subdirectories:
+ *      • ./data/pilots/ - One JSON file per pilot (e.g., P001.json)
+ *      • ./data/deployments/ - One JSON file per deployment (e.g., D001.json)
+ *      • ./data/glossary/ - One JSON file per glossary entry
+ *      • ./data/locations/ - One JSON file per location
+ *    - Files can be edited directly or through the admin panel
+ *    - Backend watches for file changes in real-time
+ * 
+ * All data access now goes through the centralized API service layer
+ * in /src/app/services/api.ts for clean separation of concerns.
  * 
  * BACKEND API ENDPOINTS:
  * ----------------------
- * GET    /api/pilots           - Fetch all pilots
- * POST   /api/pilots           - Create new pilot
- * PUT    /api/pilots/:id       - Update existing pilot
- * DELETE /api/pilots/:id       - Delete pilot
- * 
- * GET    /api/deployments      - Fetch all deployments
- * POST   /api/deployments      - Create new deployment
- * PUT    /api/deployments/:id  - Update existing deployment
- * DELETE /api/deployments/:id  - Delete deployment
- * 
- * GET    /api/glossary         - Fetch all glossary entries
- * POST   /api/glossary         - Create new glossary entry
- * PUT    /api/glossary/:id     - Update existing glossary entry
- * DELETE /api/glossary/:id     - Delete glossary entry
- * 
- * GET    /api/locations        - Fetch all locations
- * POST   /api/locations        - Create new location
- * PUT    /api/locations/:id    - Update existing location
- * DELETE /api/locations/:id    - Delete location
+ * See /src/app/services/api.ts for complete API documentation
  * 
  * BACKEND SERVER SETUP:
  * ---------------------
@@ -60,9 +48,6 @@ import type { GlossaryEntry } from "../data/glossaryData";
  * 
  * ══════════════════════════════════════════════════════════════════════════
  */
-
-// Use relative path so it works with Vite proxy
-const API_URL = '/api';
 
 export interface NewsItem {
   id: string;
@@ -108,41 +93,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Check if backend is available by trying to fetch with a timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000);
-
-        const [pilotsRes, deploymentsRes, glossaryRes, locationsRes] = await Promise.all([
-          fetch(`${API_URL}/pilots`, { signal: controller.signal }).catch(() => null),
-          fetch(`${API_URL}/deployments`, { signal: controller.signal }).catch(() => null),
-          fetch(`${API_URL}/glossary`, { signal: controller.signal }).catch(() => null),
-          fetch(`${API_URL}/locations`, { signal: controller.signal }).catch(() => null)
+        // Use centralized API service layer
+        const [pilotsData, deploymentsData, glossaryData, locationsData] = await Promise.all([
+          api.fetchPilots().catch(() => null),
+          api.fetchDeployments().catch(() => null),
+          api.fetchGlossary().catch(() => null),
+          api.fetchLocations().catch(() => null),
         ]);
-
-        clearTimeout(timeoutId);
 
         let dataLoaded = false;
 
-        if (pilotsRes?.ok) {
-          const pilotsData = await pilotsRes.json();
+        if (pilotsData) {
           setPilots(pilotsData);
           dataLoaded = true;
         }
 
-        if (deploymentsRes?.ok) {
-          const deploymentsData = await deploymentsRes.json();
+        if (deploymentsData) {
           setDeployments(deploymentsData);
           dataLoaded = true;
         }
 
-        if (glossaryRes?.ok) {
-          const glossaryData = await glossaryRes.json();
+        if (glossaryData) {
           setGlossaryEntries(glossaryData);
           dataLoaded = true;
         }
 
-        if (locationsRes?.ok) {
-          const locationsData = await locationsRes.json();
+        if (locationsData) {
           setLocations(locationsData);
           dataLoaded = true;
         }
@@ -165,11 +141,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setPilots(prev => [...prev, pilot]);
     
     try {
-      await fetch(`${API_URL}/pilots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pilot)
-      });
+      await api.createPilot(pilot);
     } catch (error) {
       console.error('Failed to save pilot to backend:', error);
     }
@@ -181,11 +153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const fullPilot = pilots.find(p => p.id === id);
       if (fullPilot) {
-        await fetch(`${API_URL}/pilots/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...fullPilot, ...updatedPilot })
-        });
+        await api.updatePilot(id, { ...fullPilot, ...updatedPilot });
       }
     } catch (error) {
       console.error('Failed to update pilot in backend:', error);
@@ -209,22 +177,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }));
     
     try {
-      await fetch(`${API_URL}/pilots/${id}`, {
-        method: 'DELETE'
-      });
+      await api.deletePilot(id);
       
       // Update all affected deployments on the backend
       const affectedDeployments = deployments.filter(d => d.signedUpPilots.includes(id));
       for (const deployment of affectedDeployments) {
         const updatedSignedUpPilots = deployment.signedUpPilots.filter(pilotId => pilotId !== id);
-        await fetch(`${API_URL}/deployments/${deployment.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...deployment,
-            signedUpPilots: updatedSignedUpPilots,
-            currentSignups: updatedSignedUpPilots.length
-          })
+        await api.updateDeployment(deployment.id, {
+          ...deployment,
+          signedUpPilots: updatedSignedUpPilots,
+          currentSignups: updatedSignedUpPilots.length
         });
       }
     } catch (error) {
@@ -236,11 +198,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setDeployments(prev => [...prev, deployment]);
     
     try {
-      await fetch(`${API_URL}/deployments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(deployment)
-      });
+      await api.createDeployment(deployment);
     } catch (error) {
       console.error('Failed to save deployment to backend:', error);
     }
@@ -252,11 +210,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const fullDeployment = deployments.find(d => d.id === id);
       if (fullDeployment) {
-        await fetch(`${API_URL}/deployments/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...fullDeployment, ...updatedDeployment })
-        });
+        await api.updateDeployment(id, { ...fullDeployment, ...updatedDeployment });
       }
     } catch (error) {
       console.error('Failed to update deployment in backend:', error);
@@ -267,9 +221,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setDeployments(prev => prev.filter(d => d.id !== id));
     
     try {
-      await fetch(`${API_URL}/deployments/${id}`, {
-        method: 'DELETE'
-      });
+      await api.deleteDeployment(id);
     } catch (error) {
       console.error('Failed to delete deployment from backend:', error);
     }
@@ -279,11 +231,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setGlossaryEntries(prev => [...prev, entry]);
     
     try {
-      await fetch(`${API_URL}/glossary`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entry)
-      });
+      await api.createGlossaryEntry(entry);
     } catch (error) {
       console.error('Failed to save glossary entry to backend:', error);
     }
@@ -295,11 +243,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const fullEntry = glossaryEntries.find(e => e.id === id);
       if (fullEntry) {
-        await fetch(`${API_URL}/glossary/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...fullEntry, ...updatedEntry })
-        });
+        await api.updateGlossaryEntry(id, { ...fullEntry, ...updatedEntry });
       }
     } catch (error) {
       console.error('Failed to update glossary entry in backend:', error);
@@ -310,9 +254,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setGlossaryEntries(prev => prev.filter(e => e.id !== id));
     
     try {
-      await fetch(`${API_URL}/glossary/${id}`, {
-        method: 'DELETE'
-      });
+      await api.deleteGlossaryEntry(id);
     } catch (error) {
       console.error('Failed to delete glossary entry from backend:', error);
     }
@@ -322,11 +264,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLocations(prev => [...prev, location]);
     
     try {
-      await fetch(`${API_URL}/locations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(location)
-      });
+      await api.createLocation(location);
     } catch (error) {
       console.error('Failed to save location to backend:', error);
     }
@@ -338,11 +276,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const fullLocation = locations.find(l => l.id === id);
       if (fullLocation) {
-        await fetch(`${API_URL}/locations/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...fullLocation, ...updatedLocation })
-        });
+        await api.updateLocation(id, { ...fullLocation, ...updatedLocation });
       }
     } catch (error) {
       console.error('Failed to update location in backend:', error);
@@ -353,9 +287,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLocations(prev => prev.filter(l => l.id !== id));
     
     try {
-      await fetch(`${API_URL}/locations/${id}`, {
-        method: 'DELETE'
-      });
+      await api.deleteLocation(id);
     } catch (error) {
       console.error('Failed to delete location from backend:', error);
     }

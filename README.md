@@ -26,10 +26,11 @@ First, create the initial JSON data files:
 npm run init-data
 ```
 
-This creates a `/data` folder with three subdirectories:
-- `/data/pilots` - Individual pilot JSON files
+This creates a `/data` folder with four subdirectories:
+- `/data/pilots` - Individual pilot JSON files (or COMP/CON exports)
 - `/data/deployments` - Mission/deployment JSON files  
 - `/data/glossary` - Glossary entry JSON files
+- `/data/locations` - Strategic location JSON files
 
 ### 2. Start the Backend Server
 
@@ -93,23 +94,20 @@ You can drag JSON files in/out of the data folders:
 ## 📋 JSON File Schemas
 
 ### Pilot Schema
+
+**V.A.N.G.U.A.R.D. uses COMP/CON pilot exports!** Export your pilots from [COMP/CON](https://compcon.app) as JSON and drop them into `/data/pilots/`.
+
+The system automatically parses the full COMP/CON pilot format including mechs, loadouts, skills, talents, and HASE stats. See the [COMP/CON documentation](https://compcon.app) for the complete schema.
+
+**Simplified example (COMP/CON format is much more detailed):**
 ```json
 {
-  "id": "P001",
+  "id": "uuid-here",
   "callsign": "NOMAD",
   "name": "Alex Chen",
-  "license": "LL-3",
+  "level": 3,
   "status": "ACTIVE",
-  "mech": {
-    "frame": "IPS-N BLACKBEARD",
-    "class": "STRIKER",
-    "designation": "BB-001"
-  },
-  "missions": 12,
-  "joinDate": "2025-01-15",
-  "age": 28,
-  "origin": "Diasporan Fleet",
-  "specialization": ["Close Combat", "Boarding Actions"]
+  "mechs": [...]
 }
 ```
 
@@ -122,20 +120,40 @@ You can drag JSON files in/out of the data folders:
   "codename": "OPERATION BASILISK",
   "theater": "Eshkadi Frontier",
   "type": "COMBAT",
-  "status": "RECRUITING",
-  "briefing": "Mission description here...",
+  "status": "PLANNED",
+  "briefing": "Primary mission briefing here...",
+  "rulesOfEngagement": "Authorization Level: AMBER. Lethal force authorized...",
+  "unionSupport": "Full Union Navy orbital support available...",
+  "threatAssessment": "THREAT LEVEL: HIGH. Corporate forces estimated...",
   "requiredPilots": 4,
   "currentSignups": 0,
   "signedUpPilots": [],
+  "playerSignups": [],
   "startDate": "2026-04-01",
   "threat": "HIGH",
-  "tags": ["COMBAT", "FRONTLINE", "HAZARD_PAY"]
+  "tags": ["COMBAT", "FRONTLINE", "HAZARD_PAY"],
+  "mainImage": "https://example.com/mission-image.jpg",
+  "additionalImages": ["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
 }
 ```
 
 **Type Options:** `COMBAT`, `RECON`, `SUPPORT`, `EXTRACTION`, `DEFENSE`  
-**Status Options:** `RECRUITING`, `IN_PROGRESS`, `COMPLETED`, `CLASSIFIED`  
+**Status Options:** `PLANNED`, `ACTIVE`, `LOCKED`, `COMPLETED`, `ARCHIVED`, `CLASSIFIED`, `AWAITING_DEBRIEF`  
 **Threat Options:** `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
+
+#### Player Signup Structure
+Each entry in `playerSignups` array:
+```json
+{
+  "pilot_id": "pilot-uuid",
+  "player_name": "John Doe",
+  "note": "Ready for deployment!",
+  "signup_timestamp": "2026-03-16T10:00:00Z",
+  "signup_status": "CONFIRMED"
+}
+```
+
+**Signup Status Options:** `CONFIRMED`, `STANDBY`, `WITHDRAWN`
 
 ### Glossary Entry Schema
 ```json
@@ -151,6 +169,21 @@ You can drag JSON files in/out of the data folders:
 
 **Category Options:** `TECHNOLOGY`, `PERSONNEL`, `ORGANIZATION`, `SYSTEM`, `LOCATION`  
 **Classification Options:** `PUBLIC`, `RESTRICTED`, `CLASSIFIED`
+
+### Location Schema
+```json
+{
+  "id": "L001",
+  "name": "Hercynia",
+  "system": "Hercynia System",
+  "status": "CRITICAL",
+  "population": "~2.3M (declining)",
+  "governance": "Union Contested Zone",
+  "activeDeployments": 1
+}
+```
+
+**Status Options:** `ACTIVE`, `STABLE`, `CONTESTED`, `CRITICAL`
 
 ## 🎮 Features
 

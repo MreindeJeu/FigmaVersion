@@ -19,12 +19,14 @@ const DATA_DIR = path.join(__dirname, '../data');
 const PILOTS_DIR = path.join(DATA_DIR, 'pilots');
 const DEPLOYMENTS_DIR = path.join(DATA_DIR, 'deployments');
 const GLOSSARY_DIR = path.join(DATA_DIR, 'glossary');
+const LOCATIONS_DIR = path.join(DATA_DIR, 'locations');
 
 // Ensure directories exist
 async function ensureDirectories() {
   await fs.mkdir(PILOTS_DIR, { recursive: true });
   await fs.mkdir(DEPLOYMENTS_DIR, { recursive: true });
   await fs.mkdir(GLOSSARY_DIR, { recursive: true });
+  await fs.mkdir(LOCATIONS_DIR, { recursive: true });
 }
 
 // Read all JSON files from a directory
@@ -147,6 +149,72 @@ app.delete('/api/deployments/:id', async (req, res) => {
   }
 });
 
+// POST signup for deployment
+app.post('/api/deployments/:id/signup', async (req, res) => {
+  try {
+    const deploymentId = req.params.id;
+    const signup = req.body;
+    
+    // Read current deployment
+    const filepath = path.join(DEPLOYMENTS_DIR, `${deploymentId}.json`);
+    const content = await fs.readFile(filepath, 'utf-8');
+    const deployment = JSON.parse(content);
+    
+    // Add player signup with timestamp
+    if (!deployment.playerSignups) {
+      deployment.playerSignups = [];
+    }
+    
+    deployment.playerSignups.push({
+      ...signup,
+      signup_timestamp: new Date().toISOString()
+    });
+    
+    // Update signedUpPilots for backwards compatibility
+    if (!deployment.signedUpPilots.includes(signup.pilot_id)) {
+      deployment.signedUpPilots.push(signup.pilot_id);
+      deployment.currentSignups = deployment.signedUpPilots.length;
+    }
+    
+    // Save updated deployment
+    await writeFile(DEPLOYMENTS_DIR, deploymentId, deployment);
+    
+    res.json(deployment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE signup from deployment
+app.delete('/api/deployments/:id/signup/:pilotId', async (req, res) => {
+  try {
+    const { id: deploymentId, pilotId } = req.params;
+    
+    // Read current deployment
+    const filepath = path.join(DEPLOYMENTS_DIR, `${deploymentId}.json`);
+    const content = await fs.readFile(filepath, 'utf-8');
+    const deployment = JSON.parse(content);
+    
+    // Remove player signup
+    if (deployment.playerSignups) {
+      deployment.playerSignups = deployment.playerSignups.filter(
+        signup => signup.pilot_id !== pilotId
+      );
+    }
+    
+    // Update signedUpPilots for backwards compatibility
+    deployment.signedUpPilots = deployment.signedUpPilots.filter(id => id !== pilotId);
+    deployment.currentSignups = deployment.signedUpPilots.length;
+    
+    // Save updated deployment
+    await writeFile(DEPLOYMENTS_DIR, deploymentId, deployment);
+    
+    res.json(deployment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET all glossary entries
 app.get('/api/glossary', async (req, res) => {
   try {
@@ -183,6 +251,48 @@ app.put('/api/glossary/:id', async (req, res) => {
 app.delete('/api/glossary/:id', async (req, res) => {
   try {
     await deleteFile(GLOSSARY_DIR, req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET all locations
+app.get('/api/locations', async (req, res) => {
+  try {
+    const locations = await readAllFiles(LOCATIONS_DIR);
+    res.json(locations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST new location
+app.post('/api/locations', async (req, res) => {
+  try {
+    const location = req.body;
+    await writeFile(LOCATIONS_DIR, location.id, location);
+    res.json(location);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT update location
+app.put('/api/locations/:id', async (req, res) => {
+  try {
+    const location = req.body;
+    await writeFile(LOCATIONS_DIR, req.params.id, location);
+    res.json(location);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE location
+app.delete('/api/locations/:id', async (req, res) => {
+  try {
+    await deleteFile(LOCATIONS_DIR, req.params.id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
