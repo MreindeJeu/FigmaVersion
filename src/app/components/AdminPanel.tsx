@@ -162,9 +162,9 @@ export function AdminPanel() {
           </div>
         </div>
         <div className="border-2 border-green-500/30 bg-green-500/5 p-5">
-          <div className="text-xs text-green-600/70 mb-2 tracking-wider">// RECRUITING NOW</div>
+          <div className="text-xs text-green-600/70 mb-2 tracking-wider">// OPEN FOR RECRUITMENT</div>
           <div className="text-4xl font-bold text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">
-            {deployments.filter(d => d.status === "RECRUITING").length}
+            {deployments.filter(d => d.status === "PLANNED").length}
           </div>
         </div>
         <div className="border-2 border-green-500/30 bg-green-500/5 p-5">
@@ -697,7 +697,7 @@ function DeploymentModal({ onClose, editingItem }: { onClose: () => void, editin
     codename: editingItem?.codename || "",
     theater: editingItem?.theater || "",
     type: editingItem?.type || "COMBAT" as Deployment["type"],
-    status: editingItem?.status || "RECRUITING" as Deployment["status"],
+    status: editingItem?.status || "PLANNED" as Deployment["status"],
     briefing: editingItem?.briefing || "",
     requiredPilots: editingItem?.requiredPilots ? String(editingItem.requiredPilots) : "4",
     startDate: editingItem?.startDate || "",
@@ -717,9 +717,13 @@ function DeploymentModal({ onClose, editingItem }: { onClose: () => void, editin
       type: formData.type,
       status: formData.status,
       briefing: formData.briefing,
+      rulesOfEngagement: editingItem?.rulesOfEngagement, // Preserve extended briefing fields
+      unionSupport: editingItem?.unionSupport,
+      threatAssessment: editingItem?.threatAssessment,
       requiredPilots: parseInt(formData.requiredPilots),
       currentSignups: editingItem ? editingItem.currentSignups : 0,
       signedUpPilots: editingItem ? editingItem.signedUpPilots : [],
+      playerSignups: editingItem ? editingItem.playerSignups : [], // Preserve player signup details
       startDate: formData.startDate,
       threat: formData.threat,
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -811,10 +815,13 @@ function DeploymentModal({ onClose, editingItem }: { onClose: () => void, editin
               onChange={(e) => setFormData({ ...formData, status: e.target.value as Deployment["status"] })}
               className="w-full p-3 border-2 border-green-500/30 bg-green-500/5 text-green-400 outline-none font-mono focus:border-green-500/50"
             >
-              <option value="RECRUITING">RECRUITING</option>
-              <option value="IN_PROGRESS">IN PROGRESS</option>
+              <option value="PLANNED">PLANNED</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="LOCKED">LOCKED</option>
               <option value="COMPLETED">COMPLETED</option>
+              <option value="ARCHIVED">ARCHIVED</option>
               <option value="CLASSIFIED">CLASSIFIED</option>
+              <option value="AWAITING_DEBRIEF">AWAITING DEBRIEF</option>
             </select>
           </div>
 

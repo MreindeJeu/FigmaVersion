@@ -1,10 +1,9 @@
 import { useData } from "../context/DataContext";
-import { locations } from "../data/mockData";
 import { MapPin, Users, Building, Activity, Globe } from "lucide-react";
 import { BackToTop } from "../components/BackToTop";
 
 export function LocationsScreen() {
-  const { deployments } = useData();
+  const { deployments, locations } = useData();
 
   const getStatusColor = (status: string) => {
     switch (status) {

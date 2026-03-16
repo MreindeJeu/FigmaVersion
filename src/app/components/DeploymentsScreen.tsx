@@ -14,9 +14,13 @@ export function DeploymentsScreen() {
     .filter(d => d.status !== "COMPLETED" && (isAdmin || d.status !== "CLASSIFIED"))
     .sort((a, b) => {
       const statusOrder: Record<string, number> = {
-        'RECRUITING': 1,
-        'IN_PROGRESS': 2,
-        'CLASSIFIED': 3
+        'PLANNED': 1,
+        'ACTIVE': 2,
+        'LOCKED': 3,
+        'AWAITING_DEBRIEF': 4,
+        'COMPLETED': 5,
+        'ARCHIVED': 6,
+        'CLASSIFIED': 7
       };
       
       const orderA = statusOrder[a.status] || 999;
@@ -37,9 +41,13 @@ export function DeploymentsScreen() {
 
   const getStatusColor = (status: Deployment["status"]) => {
     switch (status) {
-      case "RECRUITING": return "text-green-400 border-green-500/50 bg-green-500/10";
-      case "IN_PROGRESS": return "text-blue-400 border-blue-500/50 bg-blue-500/10";
+      case "PLANNED": return "text-cyan-400 border-cyan-500/50 bg-cyan-500/10";
+      case "ACTIVE": return "text-green-400 border-green-500/50 bg-green-500/10";
+      case "LOCKED": return "text-orange-400 border-orange-500/50 bg-orange-500/10";
+      case "COMPLETED": return "text-blue-400 border-blue-500/50 bg-blue-500/10";
+      case "ARCHIVED": return "text-gray-400 border-gray-500/50 bg-gray-500/10";
       case "CLASSIFIED": return "text-purple-400 border-purple-500/50 bg-purple-500/10";
+      case "AWAITING_DEBRIEF": return "text-yellow-400 border-yellow-500/50 bg-yellow-500/10";
       default: return "text-green-600/50 border-green-500/30 bg-green-500/5";
     }
   };
@@ -57,7 +65,7 @@ export function DeploymentsScreen() {
             </h1>
           </div>
           <div className="text-xs text-green-600/70">
-            {deployments.filter(d => d.status === "RECRUITING").length} ACTIVE OPERATIONS
+            {deployments.filter(d => d.status === "PLANNED").length} ACTIVE OPERATIONS
           </div>
         </div>
       </div>
@@ -149,7 +157,7 @@ export function DeploymentsScreen() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-                  {deployment.status === "RECRUITING" && spotsRemaining > 0 && (
+                  {deployment.status === "PLANNED" && spotsRemaining > 0 && (
                     <span className="px-3 py-1 border border-yellow-500/50 bg-yellow-500/10 text-yellow-400 text-xs font-bold">
                       {spotsRemaining} SPOTS
                     </span>

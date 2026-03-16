@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { pilots as initialPilots, deployments as initialDeployments } from "../data/mockData";
+import { pilots as initialPilots, deployments as initialDeployments, locations as initialLocations } from "../data/mockData";
 import { glossaryEntries as initialGlossary } from "../data/glossaryData";
-import type { CompconPilot, Deployment } from "../data/mockData";
+import type { CompconPilot, Deployment, Location } from "../data/mockData";
 import type { GlossaryEntry } from "../data/glossaryData";
 
 /**
@@ -25,6 +25,7 @@ import type { GlossaryEntry } from "../data/glossaryData";
  *      • ./data/pilots.json
  *      • ./data/deployments.json  
  *      • ./data/glossary.json
+ *      • ./data/locations.json
  * 
  * BACKEND API ENDPOINTS:
  * ----------------------
@@ -42,6 +43,11 @@ import type { GlossaryEntry } from "../data/glossaryData";
  * POST   /api/glossary         - Create new glossary entry
  * PUT    /api/glossary/:id     - Update existing glossary entry
  * DELETE /api/glossary/:id     - Delete glossary entry
+ * 
+ * GET    /api/locations        - Fetch all locations
+ * POST   /api/locations        - Create new location
+ * PUT    /api/locations/:id    - Update existing location
+ * DELETE /api/locations/:id    - Delete location
  * 
  * BACKEND SERVER SETUP:
  * ---------------------
@@ -70,6 +76,7 @@ interface DataContextType {
   pilots: CompconPilot[];
   deployments: Deployment[];
   glossaryEntries: GlossaryEntry[];
+  locations: Location[];
   newsItems: NewsItem[];
   isLoading: boolean;
   addPilot: (pilot: CompconPilot) => void;
@@ -81,6 +88,9 @@ interface DataContextType {
   addGlossaryEntry: (entry: GlossaryEntry) => void;
   updateGlossaryEntry: (id: string, entry: Partial<GlossaryEntry>) => void;
   deleteGlossaryEntry: (id: string) => void;
+  addLocation: (location: Location) => void;
+  updateLocation: (id: string, location: Partial<Location>) => void;
+  deleteLocation: (id: string) => void;
   setNewsItems: React.Dispatch<React.SetStateAction<NewsItem[]>>;
 }
 
@@ -90,6 +100,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [pilots, setPilots] = useState<CompconPilot[]>(initialPilots);
   const [deployments, setDeployments] = useState<Deployment[]>(initialDeployments);
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>(initialGlossary);
+  const [locations, setLocations] = useState<Location[]>(initialLocations);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -101,10 +112,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 1000);
 
-        const [pilotsRes, deploymentsRes, glossaryRes] = await Promise.all([
+        const [pilotsRes, deploymentsRes, glossaryRes, locationsRes] = await Promise.all([
           fetch(`${API_URL}/pilots`, { signal: controller.signal }).catch(() => null),
           fetch(`${API_URL}/deployments`, { signal: controller.signal }).catch(() => null),
-          fetch(`${API_URL}/glossary`, { signal: controller.signal }).catch(() => null)
+          fetch(`${API_URL}/glossary`, { signal: controller.signal }).catch(() => null),
+          fetch(`${API_URL}/locations`, { signal: controller.signal }).catch(() => null)
         ]);
 
         clearTimeout(timeoutId);
@@ -126,6 +138,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (glossaryRes?.ok) {
           const glossaryData = await glossaryRes.json();
           setGlossaryEntries(glossaryData);
+          dataLoaded = true;
+        }
+
+        if (locationsRes?.ok) {
+          const locationsData = await locationsRes.json();
+          setLocations(locationsData);
           dataLoaded = true;
         }
 
@@ -300,12 +318,56 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addLocation = async (location: Location) => {
+    setLocations(prev => [...prev, location]);
+    
+    try {
+      await fetch(`${API_URL}/locations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(location)
+      });
+    } catch (error) {
+      console.error('Failed to save location to backend:', error);
+    }
+  };
+
+  const updateLocation = async (id: string, updatedLocation: Partial<Location>) => {
+    setLocations(prev => prev.map(l => l.id === id ? { ...l, ...updatedLocation } : l));
+    
+    try {
+      const fullLocation = locations.find(l => l.id === id);
+      if (fullLocation) {
+        await fetch(`${API_URL}/locations/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...fullLocation, ...updatedLocation })
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update location in backend:', error);
+    }
+  };
+
+  const deleteLocation = async (id: string) => {
+    setLocations(prev => prev.filter(l => l.id !== id));
+    
+    try {
+      await fetch(`${API_URL}/locations/${id}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Failed to delete location from backend:', error);
+    }
+  };
+
   return (
     <DataContext.Provider
       value={{
         pilots,
         deployments,
         glossaryEntries,
+        locations,
         newsItems,
         isLoading,
         addPilot,
@@ -317,6 +379,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addGlossaryEntry,
         updateGlossaryEntry,
         deleteGlossaryEntry,
+        addLocation,
+        updateLocation,
+        deleteLocation,
         setNewsItems
       }}
     >

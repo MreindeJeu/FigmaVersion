@@ -6,6 +6,8 @@ import type { Deployment } from "../data/mockData";
 import { ArrowLeft, MapPin, Users, Calendar, Tag, CheckCircle, Target, AlertTriangle, FileText, Shield, User, ChevronDown, ChevronUp, Image } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { Breadcrumb } from "./Breadcrumb";
 import { BackToTop } from "./BackToTop";
 import { toast } from "sonner";
@@ -19,6 +21,8 @@ export function DeploymentDetailScreen() {
   const { isAdmin } = useAdmin();
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [selectedPilotId, setSelectedPilotId] = useState("");
+  const [playerName, setPlayerName] = useState("");
+  const [signupNote, setSignupNote] = useState("");
   const [additionalImagesExpanded, setAdditionalImagesExpanded] = useState(false);
 
   const deployment = deployments.find(d => d.id === id);
@@ -64,10 +68,13 @@ export function DeploymentDetailScreen() {
 
   const getStatusColor = (status: Deployment["status"]) => {
     switch (status) {
-      case "RECRUITING": return "text-green-400 border-green-500/50 bg-green-500/10";
-      case "IN_PROGRESS": return "text-blue-400 border-blue-500/50 bg-blue-500/10";
-      case "COMPLETED": return "text-green-600/50 border-green-500/30 bg-green-500/5";
+      case "PLANNED": return "text-cyan-400 border-cyan-500/50 bg-cyan-500/10";
+      case "ACTIVE": return "text-green-400 border-green-500/50 bg-green-500/10";
+      case "LOCKED": return "text-orange-400 border-orange-500/50 bg-orange-500/10";
+      case "COMPLETED": return "text-blue-400 border-blue-500/50 bg-blue-500/10";
+      case "ARCHIVED": return "text-gray-400 border-gray-500/50 bg-gray-500/10";
       case "CLASSIFIED": return "text-purple-400 border-purple-500/50 bg-purple-500/10";
+      case "AWAITING_DEBRIEF": return "text-yellow-400 border-yellow-500/50 bg-yellow-500/10";
       default: return "text-green-600/50 border-green-500/30 bg-green-500/5";
     }
   };
@@ -78,7 +85,10 @@ export function DeploymentDetailScreen() {
   const spotsRemaining = deployment.requiredPilots - currentSignups;
 
   const handleSignUp = () => {
-    if (!selectedPilotId) return;
+    if (!selectedPilotId || !playerName.trim()) {
+      toast.error("Please select a pilot and enter your name");
+      return;
+    }
 
     const pilot = pilots.find(p => p.id === selectedPilotId);
     if (!pilot) return;
@@ -89,18 +99,30 @@ export function DeploymentDetailScreen() {
       return;
     }
 
-    // Update the deployment with the new pilot
+    // Create new player signup
+    const newSignup = {
+      pilot_id: selectedPilotId,
+      player_name: playerName.trim(),
+      note: signupNote.trim() || undefined,
+      signup_timestamp: new Date().toISOString(),
+      signup_status: "CONFIRMED" as const
+    };
+
+    // Update the deployment with the new signup
     updateDeployment(deployment.id, {
       signedUpPilots: [...deployment.signedUpPilots, selectedPilotId],
+      playerSignups: [...(deployment.playerSignups || []), newSignup],
       currentSignups: deployment.currentSignups + 1
     });
 
     toast.success(`${pilot.callsign} signed up for ${deployment.codename}`, {
-      description: "// Deployment coordinator notified"
+      description: `// Player: ${playerName}`
     });
 
     setSignupDialogOpen(false);
     setSelectedPilotId("");
+    setPlayerName("");
+    setSignupNote("");
   };
 
   return (
@@ -218,7 +240,7 @@ export function DeploymentDetailScreen() {
                 </div>
               </div>
 
-              {deployment.status === "RECRUITING" && spotsRemaining > 0 && (
+              {deployment.status === "PLANNED" && spotsRemaining > 0 && (
                 <button
                   onClick={() => setSignupDialogOpen(true)}
                   className="w-full px-3 py-2 border border-green-500/50 bg-green-500/10 hover:bg-green-500/20 hover:border-green-500 transition-all text-xs font-bold text-green-400 tracking-wider"
@@ -477,6 +499,26 @@ export function DeploymentDetailScreen() {
                   );
                 })}
               </div>
+            </div>
+
+            <div className="border-t-2 border-green-500/20 pt-4">
+              <label className="block text-xs mb-3 text-green-600/70">// PLAYER NAME:</label>
+              <Input
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full"
+              />
+            </div>
+
+            <div className="border-t-2 border-green-500/20 pt-4">
+              <label className="block text-xs mb-3 text-green-600/70">// SIGNUP NOTE (OPTIONAL):</label>
+              <Textarea
+                value={signupNote}
+                onChange={(e) => setSignupNote(e.target.value)}
+                placeholder="Add any notes or comments"
+                className="w-full"
+              />
             </div>
 
             <div className="flex gap-3 pt-4 border-t-2 border-green-500/20">

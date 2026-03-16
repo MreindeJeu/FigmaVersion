@@ -1,4 +1,3 @@
-import { locations } from "../data/mockData";
 import { useData } from "../context/DataContext";
 import { useAdmin } from "../context/AdminContext";
 import { Users, MapPin, FileText, AlertTriangle, Activity, Zap, Shield, Radio, Rocket, Book } from "lucide-react";
@@ -8,14 +7,14 @@ import { NewsFeed } from "./NewsFeed";
 import { useState, useEffect } from "react";
 
 export function Dashboard() {
-  const { pilots, deployments } = useData();
+  const { pilots, deployments, locations } = useData();
   const { isAdmin } = useAdmin();
   
   // Filter out classified deployments for non-admin users
   const visibleDeployments = isAdmin ? deployments : deployments.filter(d => d.status !== "CLASSIFIED");
   
   const activePilots = pilots.filter(p => p.status === "Active" || p.status === "Standby").length;
-  const recruitingDeployments = visibleDeployments.filter(d => d.status === "RECRUITING").length;
+  const recruitingDeployments = visibleDeployments.filter(d => d.status === "PLANNED").length;
   const criticalTheaters = locations.filter(l => l.status === "CRITICAL" || l.status === "CONTESTED").length;
   const totalMissions = visibleDeployments.reduce((acc, d) => acc + d.signedUpPilots.length, 0);
 
@@ -238,7 +237,7 @@ export function Dashboard() {
                 <h2 className="text-sm font-bold text-green-500 tracking-wider">// RESOURCE ALLOCATION</h2>
               </div>
               <div className="space-y-3">
-                {visibleDeployments.filter(d => d.status === "RECRUITING").slice(0, 4).map(dep => (
+                {visibleDeployments.filter(d => d.status === "PLANNED").slice(0, 4).map(dep => (
                   <div key={dep.id} className="border-l-2 border-green-500/50 pl-3 text-xs">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-green-500 font-bold">{dep.codename}</span>
@@ -255,6 +254,11 @@ export function Dashboard() {
                     </div>
                   </div>
                 ))}
+                {visibleDeployments.filter(d => d.status === "PLANNED").length === 0 && (
+                  <div className="text-center text-green-600/70 py-2">
+                    // NO ACTIVE RECRUITING
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -269,7 +273,7 @@ export function Dashboard() {
             
             <div className="border-2 border-yellow-500/30 bg-yellow-500/5 divide-y-2 divide-yellow-500/20">
               {visibleDeployments
-                .filter(d => d.status === "RECRUITING" && (d.threat === "HIGH" || d.threat === "CRITICAL"))
+                .filter(d => d.status === "PLANNED" && (d.threat === "HIGH" || d.threat === "CRITICAL"))
                 .sort((a, b) => {
                   // Sort by threat level first (CRITICAL before HIGH), then by date
                   const threatOrder = { CRITICAL: 0, HIGH: 1 };
@@ -311,7 +315,7 @@ export function Dashboard() {
                   </div>
                 ))
               }
-              {visibleDeployments.filter(d => d.status === "RECRUITING" && (d.threat === "HIGH" || d.threat === "CRITICAL")).length === 0 && (
+              {visibleDeployments.filter(d => d.status === "PLANNED" && (d.threat === "HIGH" || d.threat === "CRITICAL")).length === 0 && (
                 <div className="p-4 text-center text-xs text-green-600/70">
                   // NO PRIORITY ALERTS AT THIS TIME
                 </div>

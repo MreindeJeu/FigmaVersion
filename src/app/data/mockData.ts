@@ -38,19 +38,28 @@ export const pilots: CompconPilot[] = [
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+export interface PlayerSignup {
+  pilot_id: string;
+  player_name: string;
+  note?: string;
+  signup_timestamp: string;
+  signup_status: "CONFIRMED" | "STANDBY" | "WITHDRAWN";
+}
+
 export interface Deployment {
   id: string;
   codename: string;
   theater: string;
   type: "COMBAT" | "RECON" | "SUPPORT" | "EXTRACTION" | "DEFENSE";
-  status: "RECRUITING" | "IN_PROGRESS" | "COMPLETED" | "CLASSIFIED";
+  status: "PLANNED" | "ACTIVE" | "LOCKED" | "COMPLETED" | "ARCHIVED" | "CLASSIFIED" | "AWAITING_DEBRIEF";
   briefing: string;
   rulesOfEngagement?: string;
   unionSupport?: string;
   threatAssessment?: string;
   requiredPilots: number;
   currentSignups: number;
-  signedUpPilots: string[]; // pilot IDs
+  signedUpPilots: string[]; // pilot IDs - kept for backwards compatibility
+  playerSignups: PlayerSignup[]; // New detailed signup tracking
   startDate: string;
   threat: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   tags: string[];
@@ -74,7 +83,7 @@ export const deployments: Deployment[] = [
     codename: "OPERATION SOLSTICE RAIN",
     theater: "Caliban System",
     type: "COMBAT",
-    status: "RECRUITING",
+    status: "PLANNED",
     briefing: "Union peacekeeping forces are deploying to the Caliban system to investigate reports of unauthorized corporate military activity. Initial reconnaissance suggests presence of heavy mechanized units. Mission parameters include reconnaissance, civilian protection, and potential engagement with hostile forces. This is an official Union Auxiliary operation sanctioned under Article 8 protocols.",
     rulesOfEngagement: "Authorization Level: AMBER. Lethal force authorized only in defense of civilian populations or when engaged by hostile forces. All corporate military units are to be considered potentially hostile. Attempt communication protocols before engagement. Preserve evidence of war crimes. Priority: civilian safety over tactical objectives.",
     unionSupport: "Full Union Navy orbital support available. Medical frigate UNS Nightingale on station for casualty evacuation. Resupply drops authorized every 48 hours. QRF (Quick Reaction Force) of 2 lances available within 6-hour deployment window. Fleet intelligence providing real-time reconnaissance data.",
@@ -82,6 +91,7 @@ export const deployments: Deployment[] = [
     requiredPilots: 4,
     currentSignups: 0,
     signedUpPilots: [],
+    playerSignups: [],
     startDate: "2026-03-26",
     threat: "HIGH",
     tags: ["FIRST_CONTACT", "COMBAT_EXPECTED", "OFFICIAL_MODULE"],
@@ -96,7 +106,7 @@ export const deployments: Deployment[] = [
     codename: "OPERATION IRON MONSOON",
     theater: "Hercynia",
     type: "DEFENSE",
-    status: "IN_PROGRESS",
+    status: "ACTIVE",
     briefing: "Ongoing defensive operation against hostile NHP incursion. Critical infrastructure protection required. Current team deployed, additional reserves on standby.",
     rulesOfEngagement: "Authorization Level: RED. Unrestricted engagement authorized against all NHP-corrupted entities. Do not attempt communication with compromised systems. Scorched earth protocols approved for contaminated zones. Extraction of civilian populations takes absolute priority. ROE may be elevated to BLACK if containment fails.",
     unionSupport: "Limited orbital support due to electronic interference. UNS Bulwark maintaining blockade perimeter. HORUS counter-NHP specialists embedded with ground forces. Omninet access restricted to hardline connections only. Emergency extraction via dropship available with 2-hour notice. Ammunition critically low - conserve munitions.",
@@ -104,6 +114,22 @@ export const deployments: Deployment[] = [
     requiredPilots: 6,
     currentSignups: 2,
     signedUpPilots: ["e7b88ccf-d9fe-4067-a16d-f9b2d6284a59", "0cd4b45c-9ba5-49b9-8ede-c42a71e94344"], // Prophet and Spark
+    playerSignups: [
+      {
+        pilot_id: "e7b88ccf-d9fe-4067-a16d-f9b2d6284a59",
+        player_name: "Alice Johnson",
+        note: "Ready for action!",
+        signup_timestamp: "2026-02-14T10:00:00Z",
+        signup_status: "CONFIRMED"
+      },
+      {
+        pilot_id: "0cd4b45c-9ba5-49b9-8ede-c42a71e94344",
+        player_name: "Bob Smith",
+        note: "Standing by.",
+        signup_timestamp: "2026-02-14T10:05:00Z",
+        signup_status: "STANDBY"
+      }
+    ],
     startDate: "2026-02-14",
     threat: "CRITICAL",
     tags: ["NHP_THREAT", "INFRASTRUCTURE", "ONGOING"]
@@ -113,7 +139,7 @@ export const deployments: Deployment[] = [
     codename: "OPERATION CASCADING LIGHT",
     theater: "Ras Shamra",
     type: "RECON",
-    status: "RECRUITING",
+    status: "PLANNED",
     briefing: "Reconnaissance mission to investigate anomalous readings in the Ras Shamra system. Long-range scanners detected unusual energy signatures. Stealth and sensor capabilities prioritized.",
     rulesOfEngagement: "Authorization Level: GREEN. Non-lethal engagement preferred. This is a reconnaissance operation - avoid detection when possible. Weapons free only if compromised and under direct fire. Preserve all discovered technology intact. Document everything. Intelligence gathering is primary objective.",
     unionSupport: "No orbital support - mission requires radio silence to avoid detection. Resupply cache pre-positioned at nav point ECHO-7. Extraction window opens at mission hour +72. Communication via laser-link burst transmissions only. No QRF available - you are on your own.",
@@ -121,6 +147,15 @@ export const deployments: Deployment[] = [
     requiredPilots: 3,
     currentSignups: 1,
     signedUpPilots: ["aa05b77e-2d83-4dee-ba42-67c1f58099b2"], // Whiplash
+    playerSignups: [
+      {
+        pilot_id: "aa05b77e-2d83-4dee-ba42-67c1f58099b2",
+        player_name: "Charlie Brown",
+        note: "Ready to go!",
+        signup_timestamp: "2026-04-05T09:00:00Z",
+        signup_status: "CONFIRMED"
+      }
+    ],
     startDate: "2026-04-05",
     threat: "MEDIUM",
     tags: ["RECON", "STEALTH", "INVESTIGATION"]
@@ -130,7 +165,7 @@ export const deployments: Deployment[] = [
     codename: "OPERATION BROKEN CHALICE",
     theater: "Dustgrave",
     type: "SUPPORT",
-    status: "RECRUITING",
+    status: "PLANNED",
     briefing: "Humanitarian support mission on Dustgrave. Local settlements require infrastructure repair and protection from hostile wildlife. Engineering expertise essential.",
     rulesOfEngagement: "Authorization Level: WHITE. Lethal force authorized only against non-sapient hostile fauna. Civilian interaction protocols in effect - hearts and minds operation. All construction must meet Union safety standards. Local governance authority supersedes military chain of command. Cultural sensitivity mandatory.",
     unionSupport: "Minimal military support - primarily logistics. Engineering corps providing technical advisors and material. Medical supplies pre-staged at forward base. Local militia providing perimeter security. Union administrator on-site for civilian coordination. This is a reconstruction operation, not a combat deployment.",
@@ -138,6 +173,7 @@ export const deployments: Deployment[] = [
     requiredPilots: 4,
     currentSignups: 0,
     signedUpPilots: [],
+    playerSignups: [],
     startDate: "2026-03-30",
     threat: "LOW",
     tags: ["HUMANITARIAN", "ENGINEERING", "CONSTRUCTION"]
