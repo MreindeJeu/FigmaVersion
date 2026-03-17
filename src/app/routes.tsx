@@ -45,34 +45,29 @@ import { AdminProvider } from "./context/AdminContext";
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// Wrapper component to provide context to all routes
-function RootWithProviders() {
-  return (
-    <AdminProvider>
-      <DataProvider>
-        <Root />
-      </DataProvider>
-    </AdminProvider>
-  );
-}
-
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: RootWithProviders,
+    element: (
+      <AdminProvider>
+        <DataProvider>
+          <Root />
+        </DataProvider>
+      </AdminProvider>
+    ),
     children: [
-      { index: true, Component: InitScreen },
-      { path: "dashboard", Component: Dashboard },
-      { path: "pilots", Component: PilotsScreen },
-      { path: "pilots/:id", Component: PilotDetailScreen },
-      { path: "pilots/:pilotId/mechs/:mechId", Component: MechDetailScreen },
-      { path: "deployments", Component: DeploymentsScreen },
-      { path: "deployments/:id", Component: DeploymentDetailScreen },
-      { path: "locations", Component: LocationsScreen },
-      { path: "admin", Component: AdminPanel },
-      { path: "glossary", Component: GlossaryScreen },
-      { path: "glossary/:id", Component: GlossaryDetailScreen },
-      { path: "news/:headline", Component: NewsStory },
+      { index: true, element: <InitScreen /> },
+      { path: "dashboard", element: <Dashboard /> },
+      { path: "pilots", element: <PilotsScreen /> },
+      { path: "pilots/:id", element: <PilotDetailScreen /> },
+      { path: "pilots/:pilotId/mechs/:mechId", element: <MechDetailScreen /> },
+      { path: "deployments", element: <DeploymentsScreen /> },
+      { path: "deployments/:id", element: <DeploymentDetailScreen /> },
+      { path: "locations", element: <LocationsScreen /> },
+      { path: "admin", element: <AdminPanel /> },
+      { path: "glossary", element: <GlossaryScreen /> },
+      { path: "glossary/:id", element: <GlossaryDetailScreen /> },
+      { path: "news/:headline", element: <NewsStory /> },
     ],
   },
 ]);

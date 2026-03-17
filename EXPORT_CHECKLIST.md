@@ -5,18 +5,23 @@
 ### Code Quality
 - ✅ All components properly documented with comprehensive headers
 - ✅ Backend attachment points clearly marked in DataContext.tsx
-- ✅ API endpoints documented in DataContext.tsx and vite.config.ts
+- ✅ API endpoints documented in services/api.ts
 - ✅ Admin authentication flow documented in AdminContext.tsx
 - ✅ Routes documented in routes.tsx
 - ✅ No redundant console.log statements (only intentional debug logs remain)
 - ✅ Clean, production-ready code throughout
+- ✅ All useEffect cleanup functions properly implemented
+- ✅ No TODO, FIXME, or HACK comments
+- ✅ Memory leak prevention (proper timeout/interval cleanup)
 
 ### Features Implemented
 - ✅ Retro CRT terminal aesthetic (scan lines, phosphor glow, terminal styling)
+- ✅ CRT barrel distortion effect (curved screen with vignette)
 - ✅ Terminal boot sequence animation (InitScreen)
 - ✅ Diegetic authentication ([AUXILIARY] → [COMMAND] clearance)
 - ✅ Admin code: **3825**
-- ✅ Full CRUD for pilots, deployments, and glossary entries
+- ✅ Full CRUD for pilots, deployments, glossary, and locations
+- ✅ COMP/CON pilot JSON import support
 - ✅ Classified glossary content with access control
 - ✅ Persistent system uptime tracking (localStorage)
 - ✅ Collapsible sidebar navigation
@@ -25,14 +30,18 @@
 - ✅ Dynamic news ticker with proper type distribution
 - ✅ Responsive design throughout
 - ✅ Toast notifications for user feedback
+- ✅ Player signup system for deployments
 
 ### Backend Integration
+- ✅ Centralized API service layer in services/api.ts
 - ✅ DataContext.tsx fully documented as PRIMARY ATTACHMENT POINT
 - ✅ All API endpoints clearly documented
 - ✅ Backend proxy configured in vite.config.ts
 - ✅ Graceful fallback to session-only mode
 - ✅ Error handling on all API calls
 - ✅ Optimistic UI updates for better UX
+- ✅ Express backend with file watching (chokidar)
+- ✅ Individual JSON files per entity for easy editing
 
 ### State Management
 - ✅ AdminContext for authentication (localStorage: `vanguard_admin_auth`)

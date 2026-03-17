@@ -92,7 +92,7 @@ export const deployments: Deployment[] = [
     currentSignups: 0,
     signedUpPilots: [],
     playerSignups: [],
-    startDate: "2026-03-26",
+    startDate: "5016-03-26",
     threat: "HIGH",
     tags: ["FIRST_CONTACT", "COMBAT_EXPECTED", "OFFICIAL_MODULE"],
     mainImage: "https://images.unsplash.com/photo-1535391879778-3bae11d29a24?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmdXR1cmlzdGljJTIwY2l0eSUyMHdhcmZhcmV8ZW58MXx8fHwxNzczNDk5NTcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -119,18 +119,18 @@ export const deployments: Deployment[] = [
         pilot_id: "e7b88ccf-d9fe-4067-a16d-f9b2d6284a59",
         player_name: "Alice Johnson",
         note: "Ready for action!",
-        signup_timestamp: "2026-02-14T10:00:00Z",
+        signup_timestamp: "5016-02-14T10:00:00Z",
         signup_status: "CONFIRMED"
       },
       {
         pilot_id: "0cd4b45c-9ba5-49b9-8ede-c42a71e94344",
         player_name: "Bob Smith",
         note: "Standing by.",
-        signup_timestamp: "2026-02-14T10:05:00Z",
+        signup_timestamp: "5016-02-14T10:05:00Z",
         signup_status: "STANDBY"
       }
     ],
-    startDate: "2026-02-14",
+    startDate: "5016-02-14",
     threat: "CRITICAL",
     tags: ["NHP_THREAT", "INFRASTRUCTURE", "ONGOING"]
   },
@@ -152,11 +152,11 @@ export const deployments: Deployment[] = [
         pilot_id: "aa05b77e-2d83-4dee-ba42-67c1f58099b2",
         player_name: "Charlie Brown",
         note: "Ready to go!",
-        signup_timestamp: "2026-04-05T09:00:00Z",
+        signup_timestamp: "5016-04-05T09:00:00Z",
         signup_status: "CONFIRMED"
       }
     ],
-    startDate: "2026-04-05",
+    startDate: "5016-04-05",
     threat: "MEDIUM",
     tags: ["RECON", "STEALTH", "INVESTIGATION"]
   },
@@ -174,7 +174,7 @@ export const deployments: Deployment[] = [
     currentSignups: 0,
     signedUpPilots: [],
     playerSignups: [],
-    startDate: "2026-03-30",
+    startDate: "5016-03-30",
     threat: "LOW",
     tags: ["HUMANITARIAN", "ENGINEERING", "CONSTRUCTION"]
   }

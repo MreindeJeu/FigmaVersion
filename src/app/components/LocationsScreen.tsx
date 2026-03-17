@@ -3,7 +3,7 @@ import { MapPin, Users, Building, Activity, Globe } from "lucide-react";
 import { BackToTop } from "../components/BackToTop";
 
 export function LocationsScreen() {
-  const { deployments, locations } = useData();
+  const { deployments, locations, isLoading, backendAvailable } = useData();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -33,8 +33,39 @@ export function LocationsScreen() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {locations.map(location => {
+      {/* Backend Status Banner */}
+      {!backendAvailable && !isLoading && (
+        <div className="mb-6 border-2 border-yellow-500/30 bg-yellow-500/5 p-4">
+          <div className="text-sm text-yellow-400 flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            <span>Backend connection unavailable. Running in local data mode.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="border-2 border-green-500/30 bg-green-500/5 p-12 flex flex-col items-center justify-center">
+          <div className="text-green-500 mb-4 animate-pulse">
+            <Globe className="w-16 h-16" />
+          </div>
+          <div className="text-green-400 text-lg mb-2">LOADING THEATER DATABASE...</div>
+          <div className="text-xs text-green-600/70">▶ ▶ ▶</div>
+        </div>
+      ) : locations.length === 0 ? (
+        /* Empty State */
+        <div className="border-2 border-green-500/30 bg-green-500/5 p-12 flex flex-col items-center justify-center">
+          <div className="text-green-600/30 mb-4">
+            <Globe className="w-16 h-16" />
+          </div>
+          <div className="text-green-400 text-lg mb-2">NO THEATERS REGISTERED</div>
+          <div className="text-sm text-green-600/70 text-center">
+            No operation theaters in the database.
+          </div>
+        </div>
+      ) : (
+        /* Loaded State */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">{locations.map(location => {
           const activeOps = deployments.filter(d => d.theater === location.name);
           
           return (
@@ -100,7 +131,8 @@ export function LocationsScreen() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       <BackToTop />
     </div>

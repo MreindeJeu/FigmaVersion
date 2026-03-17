@@ -92,21 +92,6 @@ const bootSequence: BootLine[] = [
       "  [████████████████████] 100% // mech.frame.v4.2.1"
     ]
   },
-  { 
-    text: "  [____________________] 0% // theater.ops.v1.7.3",
-    progress: true,
-    progressSteps: [
-      "  [____________________] 0% // theater.ops.v1.7.3",
-      "  [█___________________] 5% // theater.ops.v1.7.3",
-      "  [███_________________] 15% // theater.ops.v1.7.3",
-      "  [██████______________] 30% // theater.ops.v1.7.3",
-      "  [██████████__________] 50% // theater.ops.v1.7.3",
-      "  [██████████████______] 70% // theater.ops.v1.7.3",
-      "  [█████████████████___] 85% // theater.ops.v1.7.3",
-      "  [███████████████████_] 95% // theater.ops.v1.7.3",
-      "  [████████████████████] 100% // theater.ops.v1.7.3"
-    ]
-  },
   { text: "" },
   { text: "/boot/vanguard.sys :: init" },
   { text: "loading union_aux_kernel.vng" },
@@ -118,11 +103,6 @@ const bootSequence: BootLine[] = [
   { text: "" },
   { text: "loading module :: pilot_registry.scan" },
   { text: "loading module :: deployment_manager.exec" },
-  { text: "loading module :: theater_indexer.exec" },
-  { text: "" },
-  { text: "checking union credential chain" },
-  { text: "sig_verify /sys/union/auth.sig :: OK" },
-  { text: "aux-pilot-registry handshake >> accepted" },
   { text: "" },
   { text: "init omninet uplink /node/vanguard.beta" },
   { text: "routing /net/union/backbone" },
@@ -135,33 +115,33 @@ const bootSequence: BootLine[] = [
   { text: ">> HANDSHAKE COMPLETE" },
   { text: ">> ENCRYPTION: AES-256-GCM" },
   { text: "" },
-  { text: "sync stream /db/pilot_registry.vdb" },
-  { text: "sync stream /db/deployments_active.vdb" },
-  { text: "sync stream /db/location_index.vdb" },
-  { text: "" },
   { text: "indexing operational datasets" },
   { text: "rebuilding command cache :: 0x7A1F" },
-  { text: "uplink stability >> nominal" },
   { text: "latency :: 14ms" },
-  { text: "" },
-  { text: "CONNECTED TO UNION AUXILIARY NETWORK" },
-  { text: "VANGUARD NODE STATUS :: ACTIVE" },
   { text: "" },
   { text: "> VERIFYING UNION CREDENTIALS..." },
   { text: ">> CLEARANCE LEVEL: AUXILIARY" },
   { text: ">> ACCESS GRANTED" },
   { text: "" },
   { text: "> initializing command interface_" },
-  { text: "> awaiting user input" }
+  { text: "" },
+  { text: "> awaiting user input_" }
 ];
 
 export function InitScreen() {
   const [stage, setStage] = useState<"init" | "boot" | "complete">("init");
   const [bootLines, setBootLines] = useState<string[]>([]);
+  const [typingLine, setTypingLine] = useState<string>("");
+  const [noiseChar, setNoiseChar] = useState<string>("");
   const navigate = useNavigate();
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const intervalsRef = useRef<NodeJS.Timeout[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Random noise characters for the typing effect
+  const noiseChars = "!@#$%^&*()_+-=[]{}|;:,.<>?~`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  
+  const getRandomChar = () => noiseChars[Math.floor(Math.random() * noiseChars.length)];
 
   useEffect(() => {
     const initTimer = setTimeout(() => {
@@ -170,13 +150,6 @@ export function InitScreen() {
 
     return () => clearTimeout(initTimer);
   }, []);
-
-  // Auto-scroll effect - scroll to bottom whenever new lines are added
-  useEffect(() => {
-    if (scrollContainerRef.current && stage === "boot") {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  }, [bootLines, stage]);
 
   useEffect(() => {
     if (stage === "boot") {
@@ -190,6 +163,9 @@ export function InitScreen() {
         }
 
         const line = bootSequence[currentLineIndex];
+        
+        // Check if this is part of the ASCII logo (first 5 lines) or version line (line 6)
+        const isLogoLine = currentLineIndex < 5 || currentLineIndex === 6;
 
         if (line.progress && line.progressSteps) {
           // Add initial progress line
@@ -213,12 +189,57 @@ export function InitScreen() {
             }
           }, 50);
           intervalsRef.current.push(progressInterval);
-        } else {
-          // Regular line
+        } else if (isLogoLine) {
+          // Logo lines appear instantly
           setBootLines(prev => [...prev, line.text]);
           currentLineIndex++;
-          const timeout = setTimeout(processNextLine, 100);
+          const timeout = setTimeout(processNextLine, 20); // Very brief pause between logo lines
           timeoutsRef.current.push(timeout);
+        } else {
+          // Regular line - typewriter effect with noise
+          let charIndex = 0;
+          const targetText = line.text;
+          
+          // Start with empty line
+          setBootLines(prev => [...prev, ""]);
+          const lineIndexInArray = currentLineIndex;
+          
+          const typeNextChar = () => {
+            if (charIndex < targetText.length) {
+              const currentChar = targetText[charIndex];
+              
+              // Show noise character briefly
+              setNoiseChar(getRandomChar());
+              setBootLines(prev => {
+                const newLines = [...prev];
+                newLines[newLines.length - 1] = targetText.substring(0, charIndex) + getRandomChar();
+                return newLines;
+              });
+              
+              // Then show real character after brief delay
+              const charTimeout = setTimeout(() => {
+                setBootLines(prev => {
+                  const newLines = [...prev];
+                  newLines[newLines.length - 1] = targetText.substring(0, charIndex + 1);
+                  return newLines;
+                });
+                charIndex++;
+                
+                // Continue typing
+                const nextCharTimeout = setTimeout(typeNextChar, 8); // Fast typing: 8ms per character
+                timeoutsRef.current.push(nextCharTimeout);
+              }, 3); // Show noise for 3ms
+              
+              timeoutsRef.current.push(charTimeout);
+            } else {
+              // Line complete, move to next
+              currentLineIndex++;
+              const timeout = setTimeout(processNextLine, 50); // Brief pause between lines
+              timeoutsRef.current.push(timeout);
+            }
+          };
+          
+          typeNextChar();
         }
       };
 
@@ -273,11 +294,6 @@ export function InitScreen() {
               </div>
             </div>
           </div>
-          <div className="flex justify-center gap-3 font-mono text-green-500">
-            <span className="animate-pulse">█</span>
-            <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>█</span>
-            <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>█</span>
-          </div>
         </div>
       </div>
     );
@@ -285,7 +301,7 @@ export function InitScreen() {
 
   return (
     <div 
-      className="min-h-screen p-8 cursor-pointer bg-black relative overflow-hidden"
+      className="min-h-screen p-4 cursor-pointer bg-black relative overflow-hidden"
       onClick={skipToEnd}
       onKeyDown={skipToEnd}
       tabIndex={0}
@@ -295,7 +311,10 @@ export function InitScreen() {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/3 to-transparent pointer-events-none animate-pulse z-10" />
       
       <div className="max-w-5xl mx-auto font-mono relative">
-        <div className="space-y-0" ref={scrollContainerRef} style={{ fontFamily: "'JetBrains Mono', 'IBM Plex Mono', 'Consolas', 'Courier New', monospace" }}>
+        <div className="space-y-0" style={{ 
+          fontFamily: "'JetBrains Mono', 'IBM Plex Mono', 'Consolas', 'Courier New', monospace",
+          overflow: 'hidden'
+        }}>
           {bootLines.map((line, idx) => {
             const isProgress = line && line.includes('█');
             const isAsciiArt = line && (line.includes('╗') || line.includes('║') || line.includes('╝') || line.includes('╔') || line.includes('╚') || line.includes('═'));
@@ -306,16 +325,18 @@ export function InitScreen() {
             return (
               <pre 
                 key={idx}
-                className={`m-0 transition-all duration-100 whitespace-pre overflow-x-auto ${
+                className={`m-0 whitespace-pre ${
+                  isAsciiArt ? 'ascii-art' : ''
+                } ${
                   isProgress ? 'text-green-400' :
                   isAsciiArt && !isBox ? 'text-green-500' :
                   isBox ? 'text-green-500 text-center' :
                   isCapitalHeader ? 'text-green-500' :
                   'text-green-600/80'
                 } ${isLastLine ? 'blinking-cursor' : ''}`}
-                style={{ 
+                style={isAsciiArt ? {} : { 
                   letterSpacing: '0',
-                  lineHeight: '1.2'
+                  lineHeight: '1.1'
                 }}
               >
                 {line || ' '}

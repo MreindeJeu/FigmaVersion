@@ -126,6 +126,54 @@
 
   body {
     @apply bg-background text-foreground;
+    /* CRT Barrel Distortion Effect - margin removed to prevent double scrollbars */
+    margin: 0;
+    padding: 0;
+  }
+
+  /* CRT Screen wrapper with barrel distortion */
+  #root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    /* Subtle barrel distortion using transform */
+    transform: scale(0.98);
+    border-radius: 2% / 3%;
+    box-shadow: 
+      inset 0 0 50px rgba(0, 0, 0, 0.5),
+      inset 0 0 100px rgba(0, 0, 0, 0.3);
+    /* Create a scrollable container inside */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Scrollable content container inside the CRT effect */
+  #root > * {
+    flex: 1;
+    overflow: auto;
+  }
+
+  /* Vignette effect for CRT edges */
+  #root::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      transparent 60%,
+      rgba(0, 0, 0, 0.3) 85%,
+      rgba(0, 0, 0, 0.6) 100%
+    );
+    border-radius: 2% / 3%;
   }
 
   /**
@@ -179,57 +227,6 @@
     line-height: 1.5;
   }
 
-  /* CRT Scan Line Effect */
-  body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 9999;
-    background: linear-gradient(
-      to bottom,
-      transparent 50%,
-      rgba(0, 0, 0, 0.05) 51%
-    );
-    background-size: 100% 4px;
-    animation: scanlines 8s linear infinite;
-  }
-
-  @keyframes scanlines {
-    0% {
-      transform: translateY(0);
-    }
-    100% {
-      transform: translateY(4px);
-    }
-  }
-
-  /* Subtle screen flicker - EXTREMELY minimal */
-  body::after {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 9998;
-    background: rgba(34, 197, 94, 0.003);
-    animation: flicker 15s ease-in-out infinite;
-  }
-
-  @keyframes flicker {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.995;
-    }
-  }
-
   /* Enhanced glow on hover for interactive elements */
   .hover-glow {
     transition: all 0.3s ease;
@@ -252,5 +249,48 @@
   .blinking-cursor::after {
     content: '_';
     animation: blink-cursor 0.8s step-end infinite;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * ASCII ART RENDERING - PERFECT ALIGNMENT
+   * ═══════════════════════════════════════════════════════════════════════════
+   * 
+   * Special styles to ensure ASCII art renders with perfect alignment and
+   * no distortion. Isolates ASCII from CRT effects while preserving color.
+   */
+  .ascii-art {
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Consolas', 'Courier New', monospace;
+    white-space: pre;
+    letter-spacing: 0;
+    line-height: 1.0;
+    display: block;
+    margin: 0;
+    padding: 0;
+    /* Disable all transforms and effects */
+    transform: none !important;
+    filter: none !important;
+    text-shadow: none !important;
+    /* Ensure monospace rendering */
+    font-variant-ligatures: none;
+    font-feature-settings: normal;
+    font-kerning: none;
+    /* Prevent any text effects from parent */
+    text-rendering: geometricPrecision;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Hide scrollbars */
+    overflow: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .ascii-art::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ascii-art * {
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
   }
 }

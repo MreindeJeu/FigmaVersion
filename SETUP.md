@@ -151,7 +151,7 @@ your-project/
      "requiredPilots": 3,
      "currentSignups": 0,
      "signedUpPilots": [],
-     "startDate": "2026-04-20",
+     "startDate": "5016-04-20",
      "threat": "HIGH",
      "tags": ["RESCUE", "STEALTH", "HAZARD_PAY"]
    }

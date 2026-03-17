@@ -1,12 +1,12 @@
 import { useData } from "../context/DataContext";
 import { useAdmin } from "../context/AdminContext";
 import type { Deployment } from "../data/mockData";
-import { MapPin, Users, Calendar, Target, FileText, AlertTriangle, Image as ImageIcon } from "lucide-react";
+import { MapPin, Users, Calendar, Target, FileText, AlertTriangle, Activity, Image as ImageIcon } from "lucide-react";
 import { Link } from "react-router";
 import { BackToTop } from "./BackToTop";
 
 export function DeploymentsScreen() {
-  const { deployments } = useData();
+  const { deployments, isLoading, backendAvailable } = useData();
   const { isAdmin } = useAdmin();
 
   // Filter out completed deployments and CLASSIFIED (unless admin), then sort by status
@@ -70,9 +70,39 @@ export function DeploymentsScreen() {
         </div>
       </div>
 
-      {/* Deployments List */}
-      <div className="space-y-4">
-        {sortedDeployments.map(deployment => {
+      {/* Backend Status Banner */}
+      {!backendAvailable && !isLoading && (
+        <div className="mb-6 border-2 border-yellow-500/30 bg-yellow-500/5 p-4">
+          <div className="text-sm text-yellow-400 flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            <span>Backend connection unavailable. Running in local data mode.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="border-2 border-green-500/30 bg-green-500/5 p-12 flex flex-col items-center justify-center">
+          <div className="text-green-500 mb-4 animate-pulse">
+            <Target className="w-16 h-16" />
+          </div>
+          <div className="text-green-400 text-lg mb-2">LOADING DEPLOYMENT DATABASE...</div>
+          <div className="text-xs text-green-600/70">▶ ▶ ▶</div>
+        </div>
+      ) : sortedDeployments.length === 0 ? (
+        /* Empty State */
+        <div className="border-2 border-green-500/30 bg-green-500/5 p-12 flex flex-col items-center justify-center">
+          <div className="text-green-600/30 mb-4">
+            <Target className="w-16 h-16" />
+          </div>
+          <div className="text-green-400 text-lg mb-2">NO DEPLOYMENTS AVAILABLE</div>
+          <div className="text-sm text-green-600/70 text-center">
+            No deployments available at this time.
+          </div>
+        </div>
+      ) : (
+        /* Loaded State - Deployments List */
+        <div className="space-y-4">{sortedDeployments.map(deployment => {
           const currentSignups = deployment.signedUpPilots.length;
           const spotsRemaining = deployment.requiredPilots - currentSignups;
           const isUrgent = deployment.threat === "CRITICAL" || deployment.threat === "HIGH";
@@ -167,8 +197,8 @@ export function DeploymentsScreen() {
               </div>
             </Link>
           );
-        })}
-      </div>
+        })}</div>
+      )}
 
       <BackToTop />
     </div>

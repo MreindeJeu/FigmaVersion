@@ -73,7 +73,7 @@ Edit JSON files directly in your favorite editor:
     "designation": "EV-001"
   },
   "missions": 0,
-  "joinDate": "2026-03-12"
+  "joinDate": "5016-03-12"
 }
 ```
 3. The server will detect the new file and reload automatically
@@ -129,7 +129,7 @@ The system automatically parses the full COMP/CON pilot format including mechs, 
   "currentSignups": 0,
   "signedUpPilots": [],
   "playerSignups": [],
-  "startDate": "2026-04-01",
+  "startDate": "5016-04-01",
   "threat": "HIGH",
   "tags": ["COMBAT", "FRONTLINE", "HAZARD_PAY"],
   "mainImage": "https://example.com/mission-image.jpg",

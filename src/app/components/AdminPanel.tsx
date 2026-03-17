@@ -31,46 +31,74 @@ export function AdminPanel() {
   // Pilot upload state
   const [isDragging, setIsDragging] = useState(false);
   const [uploadExpanded, setUploadExpanded] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'validating' | 'success' | 'error'>('idle');
+  const [uploadMessage, setUploadMessage] = useState('');
 
   const categories = ["ALL", "TECHNOLOGY", "ORGANIZATION", "CULTURE", "GEOGRAPHY", "MILITARY", "SCIENCE"];
   const classifications = ["ALL", "PUBLIC", "RESTRICTED", "CLASSIFIED"];
 
-  // Handle file uploads
-  const handleFiles = (files: FileList) => {
-    Array.from(files).forEach(file => {
+  // Handle file uploads with improved feedback
+  const handleFiles = async (files: FileList) => {
+    const fileArray = Array.from(files);
+    
+    for (const file of fileArray) {
+      setUploadStatus('uploading');
+      setUploadMessage(`Uploading ${file.name}...`);
+
       if (file.type !== "application/json") {
+        setUploadStatus('error');
+        setUploadMessage(`Invalid file type: ${file.name} - Must be JSON`);
         toast.error(`Invalid file type: ${file.name} - Must be JSON`);
-        return;
+        setTimeout(() => setUploadStatus('idle'), 3000);
+        continue;
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
+          setUploadStatus('validating');
+          setUploadMessage(`Validating ${file.name}...`);
+
           const data = JSON.parse(e.target?.result as string);
           
-          // Validate it's a COMP//CON pilot file
+          // Validate it's a COMP/CON pilot file
           if (data && data.id && data.callsign && data.name) {
             // Check for duplicate pilot by ID
             const existingPilot = pilots.find(p => p.id === data.id);
             if (existingPilot) {
+              setUploadStatus('error');
+              setUploadMessage(`Duplicate pilot: ${data.callsign}`);
               toast.error(`Pilot already exists: ${data.callsign} (${existingPilot.name})`);
+              setTimeout(() => setUploadStatus('idle'), 3000);
               return;
             }
             
-            addPilot(data);
+            await addPilot(data);
+            setUploadStatus('success');
+            setUploadMessage(`✓ Successfully imported: ${data.callsign}`);
             toast.success(`Added pilot: ${data.callsign}`);
+            setTimeout(() => setUploadStatus('idle'), 2000);
           } else {
+            setUploadStatus('error');
+            setUploadMessage('Missing required fields (id, callsign, name)');
             toast.error(`Invalid pilot data in ${file.name} - Missing required fields`);
+            setTimeout(() => setUploadStatus('idle'), 3000);
           }
         } catch (error) {
+          setUploadStatus('error');
+          setUploadMessage(`Failed to parse ${file.name} - Invalid JSON`);
           toast.error(`Failed to parse ${file.name} - Invalid JSON`);
+          setTimeout(() => setUploadStatus('idle'), 3000);
         }
       };
       reader.onerror = () => {
+        setUploadStatus('error');
+        setUploadMessage(`Failed to read file: ${file.name}`);
         toast.error(`Failed to read file: ${file.name}`);
+        setTimeout(() => setUploadStatus('idle'), 3000);
       };
       reader.readAsText(file);
-    });
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -448,10 +476,34 @@ export function AdminPanel() {
               </div>
             </div>
             
+            {/* Upload Status Indicator */}
+            {uploadStatus !== 'idle' && (
+              <div className={`mt-4 p-4 border-2 ${
+                uploadStatus === 'uploading' ? 'border-blue-500/50 bg-blue-500/10' :
+                uploadStatus === 'validating' ? 'border-yellow-500/50 bg-yellow-500/10' :
+                uploadStatus === 'success' ? 'border-green-500/50 bg-green-500/10' :
+                'border-red-500/50 bg-red-500/10'
+              }`}>
+                <div className={`flex items-center gap-2 text-sm ${
+                  uploadStatus === 'uploading' ? 'text-blue-400' :
+                  uploadStatus === 'validating' ? 'text-yellow-400' :
+                  uploadStatus === 'success' ? 'text-green-400' :
+                  'text-red-400'
+                }`}>
+                  {uploadStatus === 'uploading' && <span className="animate-pulse">▶ UPLOADING...</span>}
+                  {uploadStatus === 'validating' && <span className="animate-pulse">▶ VALIDATING...</span>}
+                  {uploadStatus === 'success' && <span>✓ SUCCESS</span>}
+                  {uploadStatus === 'error' && <span>✗ ERROR</span>}
+                  <span className="text-xs">{uploadMessage}</span>
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 text-xs text-green-600/70 space-y-1">
               <div>// SUPPORTED: COMP//CON exported pilot JSON files</div>
               <div>// EXPORT FROM: <a href="https://compcon.app" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline">https://compcon.app</a></div>
               <div>// Multiple files can be uploaded simultaneously</div>
+              <div>// REQUIRED FIELDS: id, callsign, name</div>
             </div>
           </div>
         )}

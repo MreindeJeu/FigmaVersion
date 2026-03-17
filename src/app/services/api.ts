@@ -2,7 +2,13 @@
  * V.A.N.G.U.A.R.D. API Service Layer
  * 
  * Centralized data access for all backend API calls.
- * All components should use these functions instead of direct imports.
+ * All components should use these functions instead of direct fetch calls.
+ * 
+ * BACKEND ARCHITECTURE:
+ * • React frontend
+ * • Node.js/Express backend  
+ * • JSON file storage
+ * • COMP/CON pilot import support
  */
 
 import type { CompconPilot, Deployment, Location } from "../data/mockData";
@@ -24,7 +30,21 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    // Check if response is JSON or HTML error page
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await response.json();
+      throw new Error(`API Error: ${response.status} - ${errorData.error || response.statusText}`);
+    } else {
+      // HTML error page or other non-JSON response - backend likely not running
+      throw new Error(`Backend server unavailable (${response.status}). Run "npm run server" to enable file-based storage.`);
+    }
+  }
+
+  // Check response content type before parsing
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('Backend returned non-JSON response. Server may not be running correctly.');
   }
 
   return response.json();

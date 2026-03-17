@@ -12,6 +12,13 @@ import * as api from "../services/api";
  * 
  * This is the PRIMARY BACKEND ATTACHMENT POINT for the V.A.N.G.U.A.R.D. system.
  * 
+ * ARCHITECTURE:
+ * -------------
+ * • React frontend
+ * • Node.js/Express backend
+ * • JSON file storage
+ * • COMP/CON pilot import
+ * 
  * DUAL MODE OPERATION:
  * ---------------------
  * 1. FIGMA MAKE MODE (Session-Only):
@@ -20,7 +27,7 @@ import * as api from "../services/api";
  *    - No backend server required
  * 
  * 2. VISUAL STUDIO MODE (File-Based Persistence):
- *    - Connects to Node.js backend server running on port 3001
+ *    - Connects to Node.js/Express backend server running on port 3001
  *    - API proxied through Vite to '/api' endpoints
  *    - Data persisted to individual JSON files in ./data/ subdirectories:
  *      • ./data/pilots/ - One JSON file per pilot (e.g., P001.json)
@@ -64,18 +71,19 @@ interface DataContextType {
   locations: Location[];
   newsItems: NewsItem[];
   isLoading: boolean;
-  addPilot: (pilot: CompconPilot) => void;
-  updatePilot: (id: string, pilot: Partial<CompconPilot>) => void;
-  deletePilot: (id: string) => void;
-  addDeployment: (deployment: Deployment) => void;
-  updateDeployment: (id: string, deployment: Partial<Deployment>) => void;
-  deleteDeployment: (id: string) => void;
-  addGlossaryEntry: (entry: GlossaryEntry) => void;
-  updateGlossaryEntry: (id: string, entry: Partial<GlossaryEntry>) => void;
-  deleteGlossaryEntry: (id: string) => void;
-  addLocation: (location: Location) => void;
-  updateLocation: (id: string, location: Partial<Location>) => void;
-  deleteLocation: (id: string) => void;
+  backendAvailable: boolean;
+  addPilot: (pilot: CompconPilot) => Promise<void>;
+  updatePilot: (id: string, pilot: Partial<CompconPilot>) => Promise<void>;
+  deletePilot: (id: string) => Promise<void>;
+  addDeployment: (deployment: Deployment) => Promise<void>;
+  updateDeployment: (id: string, deployment: Partial<Deployment>) => Promise<void>;
+  deleteDeployment: (id: string) => Promise<void>;
+  addGlossaryEntry: (entry: GlossaryEntry) => Promise<void>;
+  updateGlossaryEntry: (id: string, entry: Partial<GlossaryEntry>) => Promise<void>;
+  deleteGlossaryEntry: (id: string) => Promise<void>;
+  addLocation: (location: Location) => Promise<void>;
+  updateLocation: (id: string, location: Partial<Location>) => Promise<void>;
+  deleteLocation: (id: string) => Promise<void>;
   setNewsItems: React.Dispatch<React.SetStateAction<NewsItem[]>>;
 }
 
@@ -88,6 +96,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [locations, setLocations] = useState<Location[]>(initialLocations);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [backendAvailable, setBackendAvailable] = useState(false);
 
   // Fetch initial data from backend
   useEffect(() => {
@@ -125,6 +134,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         if (!dataLoaded) {
           console.log('📡 Backend not available - using local data (run "npm run server" to enable file-based storage)');
+        } else {
+          setBackendAvailable(true);
         }
 
         setIsLoading(false);
@@ -213,7 +224,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await api.updateDeployment(id, { ...fullDeployment, ...updatedDeployment });
       }
     } catch (error) {
-      console.error('Failed to update deployment in backend:', error);
+      // Silently fail - optimistic update already applied, session-only mode is acceptable
+      if (backendAvailable) {
+        console.error('Failed to update deployment in backend:', error);
+      }
     }
   };
 
@@ -302,6 +316,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         locations,
         newsItems,
         isLoading,
+        backendAvailable,
         addPilot,
         updatePilot,
         deletePilot,

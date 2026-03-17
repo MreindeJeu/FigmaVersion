@@ -54,7 +54,7 @@ const NEWS_POOL = {
 };
 
 function getRandomDate() {
-  const today = new Date(2026, 2, 13); // March 13, 2026
+  const today = new Date(5016, 2, 13); // March 13, 5016u
   const daysAgo = Math.floor(Math.random() * 7);
   const date = new Date(today);
   date.setDate(date.getDate() - daysAgo);

@@ -16,6 +16,7 @@ import { router } from './routes';
  * - Immersive terminal boot sequence
  * - Persistent system uptime tracking
  * - Classified content access control
+ * - Centralized API service layer for backend integration
  * 
  * ADMIN ACCESS CODE: 3825
  * 
@@ -24,6 +25,8 @@ import { router } from './routes';
  * /src/app/
  *   ├── App.tsx              ← Entry point (this file)
  *   ├── routes.tsx           ← React Router configuration with providers
+ *   ├── services/            ← API service layer
+ *   │   └── api.ts           ← Centralized backend API calls
  *   ├── context/             ← State management
  *   │   ├── AdminContext.tsx ← Authentication (COMMAND clearance)
  *   │   └── DataContext.tsx  ← Backend API integration (PRIMARY ATTACHMENT POINT)
@@ -42,7 +45,8 @@ import { router } from './routes';
  * - API proxy: Vite proxies /api → http://localhost:3001/api
  * - Start server: npm run server
  * 
- * See DataContext.tsx for complete API documentation.
+ * See /src/app/services/api.ts for API documentation.
+ * See DataContext.tsx for context integration.
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
